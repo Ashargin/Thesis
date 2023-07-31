@@ -12,10 +12,9 @@ import torch
 from torch.utils.data import DataLoader
 from tensorflow import keras
 
-from mxfold2.predict import Predict
-
 sys.path.append('/mnt/e/Scripts')
 sys.path.append('/mnt/e/Scripts/UFold')
+from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
 
 from utils import format_data
@@ -96,15 +95,13 @@ def mxfold2_predict(seqs):
         if r > 0. * t:
             torch.cuda.empty_cache()
 
-    # data loader
-    mxfold2_predictor.test_loader = DataLoader(seqs, batch_size=1, shuffle=False)
-
     # predict
     scs = []
     preds = []
     bps = []
-    mxfold2_predictor.model.eval()
     tstart = time.time()
+    mxfold2_predictor.test_loader = DataLoader(seqs, batch_size=1, shuffle=False) # data loader
+    mxfold2_predictor.model.eval()
     with torch.no_grad():
         for seq_batch in mxfold2_predictor.test_loader:
             scs_batch, preds_batch, bps_batch = mxfold2_predictor.model(seq_batch)
@@ -180,7 +177,8 @@ def linearfold_predict(seqs):
     ttot = time.time() - tstart
 
     # read output
-    preds = [r.split('\n')[1].split()[0] for r in preds]
+    preds = [r.split('\n')[1].split()[0] if not r.startswith('Unrecognized')
+                                         else '.' * len(s) for s, r in zip(seqs, preds)]
     if len(preds) == 1:
         preds = preds[0]
 
@@ -189,98 +187,22 @@ def linearfold_predict(seqs):
     return preds, None, None, ttot, 0.
 
 
-def divide_predict(seq, max_length=200, struct='', store_cuts=False, cuts_file=None,
-                                                                     rna_name=''):
-    if len(seq) <= max_length:
-        if cuts_file is not None:
-            return '.' * len(seq), None, None, 0., 0.
-        return mxfold2_predict(seq)
+def rnapar_predict(seqs):
+    if isinstance(seqs, str):
+        seqs = [seqs]
 
-    if struct:
-        cuts, outer = divide_get_cuts_cheat(struct)
-    else:
-        cuts, outer = divide_get_cuts(seq)
-    if cuts_file is not None:
-        line = f'{rna_name.split("#Name: ")[1]},{seq},{str(cuts).replace(",", "")},{outer}\n'
-        cuts_file.write(line)
+    # predict
+    cwd = os.getcwd()
+    os.chdir(r'/mnt/e/Scripts/RNAPar')
+    os.popen('python predict.py -i ./data/test.fasta -o ./predict/test.data -w ./models/weight-1.h5 -K 6 -C 61 -U 115 -N 53')
 
-    # Cut sequence into subsequences
-    random_cuts = [int(len(seq) / 3), int(len(seq) * 2 / 3)]
-    if not cuts:
-        cuts = random_cuts
-    if cuts[0] > 0:
-        cuts = [0] + cuts
-    if cuts[-1] < len(seq):
-        cuts = cuts + [len(seq)]
-    if len(cuts) < (4 if outer else 3):
-        cuts = [0] + random_cuts + [len(seq)]
-    assert np.all(np.array(cuts)[1:] > np.array(cuts)[:-1])
+    if len(preds) == 1:
+        preds = preds[0]
 
-    outer_bounds = []
-    inner_bounds = [(cuts[i], cuts[i+1]) for i in range(len(cuts) - 1)]
-    if outer:
-        outer_bounds = [inner_bounds[0], inner_bounds[-1]]
-        inner_bounds = inner_bounds[1:-1]
-
-    # Predict subsequences
-    preds = []
-    outer_preds = []
-    times = []
-    memories = []
-    for left_b, right_b in inner_bounds:
-        subseq = seq[left_b:right_b]
-
-        if struct:
-            substruct = struct[left_b:right_b]
-            assert substruct.count('(') == substruct.count(')')
-            pred, _, _, ttot, memory = divide_predict(subseq, max_length=max_length,
-                                                              struct=substruct,
-                                                              cuts_file=cuts_file,
-                                                              rna_name=rna_name)
-        else:
-            pred, _, _, ttot, memory = divide_predict(subseq, max_length=max_length,
-                                                              cuts_file=cuts_file,
-                                                              rna_name=rna_name)
-
-        preds.append(pred)
-        times.append(ttot)
-        memories.append(memory)
-
-    if outer_bounds:
-        left_subseq = seq[outer_bounds[0][0]:outer_bounds[0][1]]
-        right_subseq = seq[outer_bounds[1][0]:outer_bounds[1][1]]
-        subseq = left_subseq + right_subseq
-
-        if struct:
-            left_substruct = struct[outer_bounds[0][0]:outer_bounds[0][1]]
-            right_substruct = struct[outer_bounds[1][0]:outer_bounds[1][1]]
-            substruct = left_substruct + right_substruct
-            assert substruct.count('(') == substruct.count(')')
-            pred, _, _, ttot, memory = divide_predict(subseq, max_length=max_length,
-                                                              struct=substruct,
-                                                              cuts_file=cuts_file,
-                                                              rna_name=rna_name)
-        else:
-            pred, _, _, ttot, memory = divide_predict(subseq, max_length=max_length,
-                                                              cuts_file=cuts_file,
-                                                              rna_name=rna_name)
-
-        left_pred, right_pred = pred[:len(left_subseq)], pred[len(left_subseq):]
-        outer_preds = [left_pred, right_pred]
-        times.append(ttot)
-        memories.append(memory)
-
-    # Patch sub predictions into global prediction
-    global_pred = ''.join(preds)
-    if outer_bounds:
-        global_pred = outer_preds[0] + global_pred + outer_preds[1]
-    ttot = sum(times)
-    memory = max(memories) # could also try sum of memories
-
-    return global_pred, None, None, ttot, memory
+    return preds, None, None, ttot, 0.
 
 
-def divide_get_cuts_cheat(struct):
+def oracle_get_cuts(struct):
     # Determine depth levels
     struct = re.sub('[^\(\)\.]', '.', struct)
     depths = []
@@ -352,19 +274,17 @@ def divide_get_cuts_cheat(struct):
     return cuts, outer
 
 
-def divide_get_cuts(seq, min_height=0.33, min_distance=15):
-    seq_mat = format_data(seq).reshape((1, -1, 297))
+def divide_get_cuts(seq, min_height=0.28, min_distance=12):
+    seq_mat = format_data(seq).reshape((1, -1, 768))
 
     cuts = my_model(seq_mat).numpy().ravel()
     min_height = min(min_height, max(cuts))
 
     def get_peaks(min_height):
         peaks = signal.find_peaks(cuts, height=min_height, distance=min_distance)[0].tolist()
-        if not peaks:
-            return peaks
-        if peaks[0] == 0:
+        if peaks and (peaks[0] == 0):
             peaks = peaks[1:]
-        if peaks[-1] == len(seq):
+        if peaks and (peaks[-1] == len(seq)):
             peaks = peaks[:-1]
         return peaks
 
@@ -379,3 +299,106 @@ def divide_get_cuts(seq, min_height=0.33, min_distance=15):
     outer = True
 
     return peaks, outer
+
+
+def linearfold_get_cuts(seq):
+    preds, _, _, _, _ = linearfold_predict(seq)
+    return oracle_get_cuts(preds)
+
+
+def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxfold2_predict,
+                   struct='', cuts_file=None, rna_name=''):
+    tstart = time.time()
+
+    if len(seq) <= max_length:
+        if cuts_file is not None:
+            return '.' * len(seq), None, None, 0., 0.
+        return predict_fnc(seq)
+
+    if struct:
+        cuts, outer = oracle_get_cuts(struct)
+    else:
+        cuts, outer = cut_fnc(seq)
+    if cuts_file is not None:
+        line = f'{rna_name.split("#Name: ")[1]},{seq},{str(cuts).replace(",", "")},{outer}\n'
+        cuts_file.write(line)
+
+    # Cut sequence into subsequences
+    random_cuts = [int(len(seq) / 3), int(len(seq) * 2 / 3)]
+    if not cuts:
+        cuts = random_cuts
+    if cuts[0] > 0:
+        cuts = [0] + cuts
+    if cuts[-1] < len(seq):
+        cuts = cuts + [len(seq)]
+    if len(cuts) < (4 if outer else 3):
+        cuts = [0] + random_cuts + [len(seq)]
+    assert np.all(np.array(cuts)[1:] > np.array(cuts)[:-1])
+
+    outer_bounds = []
+    inner_bounds = [(cuts[i], cuts[i+1]) for i in range(len(cuts) - 1)]
+    if outer:
+        outer_bounds = [inner_bounds[0], inner_bounds[-1]]
+        inner_bounds = inner_bounds[1:-1]
+
+    # Predict subsequences
+    preds = []
+    outer_preds = []
+    memories = []
+    for left_b, right_b in inner_bounds:
+        subseq = seq[left_b:right_b]
+
+        if struct:
+            substruct = struct[left_b:right_b]
+            assert substruct.count('(') == substruct.count(')')
+            pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              cut_fnc=cut_fnc,
+                                                              predict_fnc=predict_fnc,
+                                                              struct=substruct,
+                                                              cuts_file=cuts_file,
+                                                              rna_name=rna_name)
+        else:
+            pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              cut_fnc=cut_fnc,
+                                                              predict_fnc=predict_fnc,
+                                                              cuts_file=cuts_file,
+                                                              rna_name=rna_name)
+
+        preds.append(pred)
+        memories.append(memory)
+
+    if outer_bounds:
+        left_subseq = seq[outer_bounds[0][0]:outer_bounds[0][1]]
+        right_subseq = seq[outer_bounds[1][0]:outer_bounds[1][1]]
+        subseq = left_subseq + right_subseq
+
+        if struct:
+            left_substruct = struct[outer_bounds[0][0]:outer_bounds[0][1]]
+            right_substruct = struct[outer_bounds[1][0]:outer_bounds[1][1]]
+            substruct = left_substruct + right_substruct
+            assert substruct.count('(') == substruct.count(')')
+            pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              cut_fnc=cut_fnc,
+                                                              predict_fnc=predict_fnc,
+                                                              struct=substruct,
+                                                              cuts_file=cuts_file,
+                                                              rna_name=rna_name)
+        else:
+            pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              cut_fnc=cut_fnc,
+                                                              predict_fnc=predict_fnc,
+                                                              cuts_file=cuts_file,
+                                                              rna_name=rna_name)
+
+        left_pred, right_pred = pred[:len(left_subseq)], pred[len(left_subseq):]
+        outer_preds = [left_pred, right_pred]
+        memories.append(memory)
+
+    # Patch sub predictions into global prediction
+    global_pred = ''.join(preds)
+    if outer_bounds:
+        global_pred = outer_preds[0] + global_pred + outer_preds[1]
+    ttot = time.time() - tstart
+    memory = max(memories)
+
+    return global_pred, None, None, ttot, memory

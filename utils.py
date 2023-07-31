@@ -5,6 +5,7 @@ import re
 import seaborn as sns
 # import fm
 import torch
+from transformers import AutoTokenizer, AutoModel
 
 # Load RNA-FM model
 # rna_fm_model, alphabet = fm.pretrained.rna_fm_t12()
@@ -14,6 +15,12 @@ import torch
 # Read motifs
 df_motifs = pd.read_csv(os.path.join('resources', 'motif_seqs.csv'), index_col=0)
 df_motifs = df_motifs[df_motifs.time < 0.012]
+
+# Load DNABERT
+dnabert_tokenizer = AutoTokenizer.from_pretrained("zhihan1996/DNA_bert_6",
+                                                    trust_remote_code=True)
+dnabert_encoder = AutoModel.from_pretrained("zhihan1996/DNA_bert_6",
+                                                    trust_remote_code=True)
 
 
 def struct_to_pairs(y):
@@ -42,9 +49,28 @@ def struct_to_pairs(y):
     return pairs
 
 
+def seq2kmer(seq, k):
+    """
+    Convert original sequence to kmers
+
+    Arguments:
+    seq -- str, original sequence.
+    k -- int, kmer of length k specified.
+
+    Returns:
+    kmers -- str, kmers separated by space
+    """
+    kmer = [seq[x:x+k] for x in range(len(seq)+1-k)]
+    kmers = " ".join(kmer)
+
+    return kmers
+
+
 def run_preds(fnc, out_path, in_path='bpRNA_1M/dbnFiles/allDbn.dbn', allow_errors=False,
                                                                      use_structs=False,
-                                                                     store_cuts=False):
+                                                                     store_cuts=False,
+                                                                     max_len=None,
+                                                                     kwargs={}):
     # Read input
     with open(in_path, 'r') as f:
         content = f.read()
@@ -78,27 +104,32 @@ def run_preds(fnc, out_path, in_path='bpRNA_1M/dbnFiles/allDbn.dbn', allow_error
         f_out.write('rna_name,seq,cuts,outer\n')
         n_processed = 0
 
+    def dummy_response(input_len):
+        return '?' * input_len, 0., 1.
+
     # Run
+    print(f'Predicting to {out_path}')
     print(f'{n_processed}/{n} already processed')
     for i, (header, seq, struct) in enumerate(zip(headers, seqs, structs)):
         if i < n_processed:
             continue
 
         print(f'{i}/{n}')
-        kwargs = {}
         if use_structs:
             kwargs['struct'] = struct
         if store_cuts:
             kwargs['cuts_file'] = f_out
             kwargs['rna_name'] = header
-        if allow_errors:
+
+        if max_len is not None and len(seq) > max_len:
+            print(f'Skipping sequence of length {len(seq)}')
+            pred, ttot, memory = dummy_response(len(seq))
+        elif allow_errors:
             try:
                 pred, _, _, ttot, memory = fnc(seq, **kwargs)
             except (RuntimeError, IndexError, ValueError) as e:
                 print(f'Failed: length {len(seq)}, error {e}')
-                pred = '?' * len(seq)
-                ttot = 0.
-                memory = 1.
+                pred, ttot, memory = dummy_response(len(seq))
         else:
             pred, _, _, ttot, memory = fnc(seq, **kwargs)
         if not store_cuts:
@@ -131,7 +162,7 @@ def get_scores_df(preds_path):
         this_ppv = tp / (tp + fp) if (tp + fp) > 0 else np.nan
         this_sen = tp / (tp + fn) if (tp + fn) > 0 else np.nan
         this_fscore = 2 * this_sen * this_ppv / (this_sen + this_ppv) \
-                                if (this_ppv + this_sen) > 0 else np.nan
+                                    if (this_ppv + this_sen) > 0 else np.nan
         ppv.append(this_ppv)
         sen.append(this_sen)
         fscore.append(this_fscore)
@@ -221,7 +252,24 @@ def seq_to_motif_matches(seq, **kwargs):
 #     return token_embeddings
 
 
-def format_data(seq, cuts=None, input_format='concatenate', **kwargs):
+def seq_to_dnabert(seq):
+    tokenized = dnabert_tokenizer(seq2kmer(seq.replace('U', 'T').replace('~', 'M'), k=6),
+                                  padding='longest',
+                                  pad_to_multiple_of=512,
+                                  )
+    encoded = dnabert_encoder(torch.tensor([tokenized['input_ids']]).view(-1, 512),
+                              torch.tensor([tokenized['attention_mask']]).view(-1, 512))
+    seq_mat, pooled_seq_mat = encoded[0], encoded[1]
+
+    tokens_len = len(seq) - 3
+    seq_mat = np.vstack(seq_mat.detach().numpy())[:tokens_len]
+    seq_mat = np.vstack([seq_mat[0], seq_mat[0], seq_mat, seq_mat[-1]]) ###### fix size ?
+    # pooled_seq_mat = np.mean(pooled_seq_mat.detach().numpy(), axis=0)
+
+    return seq_mat
+
+
+def format_data(seq, cuts=None, input_format='motifs', **kwargs):
     seq_array = None
     if input_format == 'one_hot':
         seq_array = seq_to_one_hot(seq)
@@ -232,12 +280,16 @@ def format_data(seq, cuts=None, input_format='concatenate', **kwargs):
     # elif input_format == 'rna_fm':
     #     seq_array = seq_to_rna_fm(seq)
 
+    elif input_format == 'dnabert':
+        seq_array = seq_to_dnabert(seq)
+
     elif input_format == 'concatenate':
         seq_one_hot = seq_to_one_hot(seq)
         seq_motifs = seq_to_motif_matches(seq, **kwargs)
         # seq_rnafm = seq_to_rna_fm(seq)
-        # seq_array = np.hstack([seq_one_hot, seq_motifs, seq_rnafm])
-        seq_array = np.hstack([seq_one_hot, seq_motifs])
+        seq_dnabert = seq_to_dnabert(seq)
+        # seq_array = np.hstack([seq_one_hot, seq_motifs, seq_rnafm, seq_dnabert])
+        seq_array = np.hstack([seq_one_hot, seq_motifs, seq_dnabert])
 
     if cuts is not None:
         cuts_ints = [int(c) for c in cuts[1:-1].split()]
