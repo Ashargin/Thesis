@@ -1,10 +1,11 @@
 import os
-import pickle
+import pickle5 as pickle
 import numpy as np
 import pandas as pd
 from tensorflow import keras
 import torch
 from transformers import AutoTokenizer, AutoModel
+from scipy import signal
 
 from models import TransformerModel, NonTransformerModel, min_distance_to_cut_loss, \
                                                           inv_exp_distance_to_cut_loss
@@ -37,7 +38,7 @@ def motif_cache_data_generator(folder_path, max_len=None):
         if max_len is not None and seq_mat.shape[0] > max_len:
             continue
 
-        yield seq_mat.reshape((1, len(seq), 297)), cuts_mat.reshape((1, len(cuts)))
+        yield seq_mat.reshape((1, seq_mat.shape[0], 297)), cuts_mat.reshape((1, cuts_mat.shape[0]))
 
 
 def dnabert_data_generator(csv_path, max_len=None):
@@ -79,16 +80,16 @@ def dnabert_data_generator(csv_path, max_len=None):
 
 
 # Fit model
-# train_path = r'resources/data/formatted_train'
-# test_path = r'resources/data/formatted_test'
-train_csv_path = r'resources\data\train.csv'
-test_csv_path = r'resources\data\test.csv'
-n_train = pd.read_csv(train_csv_path, index_col=0).shape[0]
-n_test = pd.read_csv(test_csv_path, index_col=0).shape[0]
-history = model.model.fit(dnabert_data_generator(train_csv_path),
-                          validation_data=dnabert_data_generator(test_csv_path),
+train_path = r'resources/data/formatted_train'
+test_path = r'resources/data/formatted_test'
+# train_csv_path = r'resources\data\train.csv'
+# test_csv_path = r'resources\data\test.csv'
+n_train = len(os.listdir(train_path))
+n_test = len(os.listdir(test_path))
+history = model.model.fit(motif_cache_data_generator(train_path),
+                          validation_data=motif_cache_data_generator(test_path),
                           steps_per_epoch = 1267,
-                          epochs = 6,
+                          epochs = 100,
                           validation_steps = 305,)
 
 model.model.save(r'resources/models/model')
@@ -102,10 +103,10 @@ plt.plot(X, val_loss, label='val_loss')
 plt.legend()
 plt.show()
 
-my_model = keras.models.load_model(r'resources/models/model',
-                                   custom_objects={'inv_exp_distance_to_cut_loss':
-                                                   inv_exp_distance_to_cut_loss})
-test_datagen = dnabert_data_generator(test_csv_path)
+my_model = keras.models.load_model(r'resources/models/model', compile=False)
+my_model.compile(optimizer='adam', loss=inv_exp_distance_to_cut_loss, metrics=['accuracy'],
+                                                                            run_eagerly=True)
+test_datagen = motif_cache_data_generator(test_path)
 
 
 def plot_cut_probabilities():

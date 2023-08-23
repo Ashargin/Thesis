@@ -5,7 +5,8 @@ import re
 import seaborn as sns
 # import fm
 import torch
-from transformers import AutoTokenizer, AutoModel
+# from transformers import AutoTokenizer, AutoModel
+from IPyRSSA.Structure import ct2dot
 
 # Load RNA-FM model
 # rna_fm_model, alphabet = fm.pretrained.rna_fm_t12()
@@ -17,18 +18,18 @@ df_motifs = pd.read_csv(os.path.join('resources', 'motif_seqs.csv'), index_col=0
 df_motifs = df_motifs[df_motifs.time < 0.012]
 
 # Load DNABERT
-dnabert_tokenizer = AutoTokenizer.from_pretrained("zhihan1996/DNA_bert_6",
-                                                    trust_remote_code=True)
-dnabert_encoder = AutoModel.from_pretrained("zhihan1996/DNA_bert_6",
-                                                    trust_remote_code=True)
+# dnabert_tokenizer = AutoTokenizer.from_pretrained("zhihan1996/DNA_bert_6",
+#                                                     trust_remote_code=True)
+# dnabert_encoder = AutoModel.from_pretrained("zhihan1996/DNA_bert_6",
+#                                                     trust_remote_code=True)
 
 
-def struct_to_pairs(y):
+def struct_to_pairs(struct):
     open_brackets = ['(', '[', '<', '{', 'A', 'B', 'C']
     close_brackets = [')', ']', '>', '}', 'a', 'b', 'c']
     opened = [[] for _ in range(len(open_brackets))]
     pairs = {}
-    for i, char in enumerate(y):
+    for i, char in enumerate(struct):
         if char == '.':
             pairs[i+1] = 0
         elif char in open_brackets:
@@ -40,13 +41,23 @@ def struct_to_pairs(y):
             pairs[last_opened] = i+1
             pairs[i+1] = last_opened
         elif char == '?':
-            assert all([c == '?' for c in y])
-            return {i+1: 0 for i in range(len(y))}
+            assert all([c == '?' for c in struct])
+            return {i+1: 0 for i in range(len(struct))}
         else:
             raise Warning('Unknown bracket !')
 
-    pairs = np.array([pairs[i+1] for i in range(len(y))])
+    pairs = np.array([pairs[i+1] for i in range(len(struct))])
     return pairs
+
+
+def pairs_to_struct(pairs):
+    length = len(pairs)
+    pairs_list = []
+    for i, v in enumerate(pairs):
+        if v > i+1:
+            pairs_list.append((i+1, v))
+
+    return ct2dot(pairs_list, length)
 
 
 def seq2kmer(seq, k):
@@ -275,7 +286,9 @@ def format_data(seq, cuts=None, input_format='motifs', **kwargs):
         seq_array = seq_to_one_hot(seq)
 
     elif input_format == 'motifs':
-        seq_array = seq_to_motif_matches(seq, **kwargs)
+        seq_one_hot = seq_to_one_hot(seq)
+        seq_motifs = seq_to_motif_matches(seq, **kwargs)
+        seq_array = np.hstack([seq_one_hot, seq_motifs])
 
     # elif input_format == 'rna_fm':
     #     seq_array = seq_to_rna_fm(seq)

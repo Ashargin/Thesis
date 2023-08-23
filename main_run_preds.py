@@ -13,9 +13,10 @@ path_mxfold2_preds = 'resources/mxfold2_preds.csv'
 path_linearfold_preds = 'resources/linearfold_preds.csv'
 path_ufold_preds = 'resources/ufold_preds.csv'
 path_divide_cheat_preds = 'resources/divide_cheat_preds.csv'
-path_divide_motifs_preds = 'resources/divide_motifs_preds.csv'
 path_divide_dnabert_preds = 'resources/divide_dnabert_preds.csv'
+path_divide_motifs_preds = 'resources/divide_motifs_preds.csv'
 path_divide_linearfoldcuts_preds = 'resources/divide_linearfoldcuts_preds.csv'
+path_divide_motifs_stop385_preds = 'resources/divide_motifs_stop385_preds.csv'
 
 ## Run mxfold2
 if platform.system() == 'Linux':
@@ -37,13 +38,13 @@ if platform.system() == 'Linux':
 
 ## Run divide
 # if platform.system() == 'Linux':
-#     run_preds(divide_predict, path_divide_motifs_preds, max_len=2560,
+#     run_preds(divide_predict, path_divide_dnabert_preds, max_len=2560,
 #                               kwargs={'max_length': 200,
 #                                       'cut_fnc': divide_get_cuts, # with dnabert input format
 #                                       'predict_fnc': mxfold2_predict})
 
 if platform.system() == 'Linux':
-    run_preds(divide_predict, path_divide_dnabert_preds,
+    run_preds(divide_predict, path_divide_motifs_preds,
                               kwargs={'max_length': 200,
                                       'cut_fnc': divide_get_cuts, # with motifs input format
                                       'predict_fnc': mxfold2_predict})
@@ -52,6 +53,12 @@ if platform.system() == 'Linux':
     run_preds(divide_predict, path_divide_linearfoldcuts_preds,
                               kwargs={'max_length': 200,
                                       'cut_fnc': linearfold_get_cuts,
+                                      'predict_fnc': mxfold2_predict})
+
+if platform.system() == 'Linux':
+    run_preds(divide_predict, path_divide_motifs_stop385_preds,
+                              kwargs={'max_length': 385,
+                                      'cut_fnc': divide_get_cuts, # with motifs input format
                                       'predict_fnc': mxfold2_predict})
 
 ## Score predictions
@@ -66,10 +73,10 @@ divide_linearfoldcuts_scores = get_scores_df(path_divide_linearfoldcuts_preds)
 mxfold2_scores['model'] = 'mxfold2'
 linearfold_scores['model'] = 'linearfold'
 # ufold_scores['model'] = 'ufold'
-divide_cheat_scores['model'] = 'divide_oracle'
+divide_cheat_scores['model'] = 'recursive_strategy_from_truth'
 # divide_dnabert_scores['model'] = 'divide_dnabert'
-divide_motifs_scores['model'] = 'divide_motifs'
-divide_linearfoldcuts_scores['model'] = 'divide_linearfoldcuts'
+divide_motifs_scores['model'] = 'recursive_predicted_from_motifs'
+divide_linearfoldcuts_scores['model'] = 'divide_strategy_from_linearfold'
 data = pd.concat([mxfold2_scores, linearfold_scores, divide_cheat_scores,
                   divide_motifs_scores, divide_linearfoldcuts_scores])
 

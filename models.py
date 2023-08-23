@@ -17,8 +17,8 @@ class TransformerModel:
         dropout_rate = 0.1
         middle_dense_dim = 16
 
-        # inputs = layers.Input(shape=(None, 297))
-        inputs = layers.Input(shape=(None, 768))
+        inputs = layers.Input(shape=(None, 297))
+        # inputs = layers.Input(shape=(None, 768))
         transformed = layers_nlp.TransformerEncoder(transformer_ff_dim, num_heads,
                                                     dropout=dropout_rate)(inputs) \
                       if self.has_transformer else inputs
