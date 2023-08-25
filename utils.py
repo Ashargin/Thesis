@@ -6,7 +6,7 @@ import seaborn as sns
 # import fm
 import torch
 # from transformers import AutoTokenizer, AutoModel
-from IPyRSSA.Structure import ct2dot
+# from IPyRSSA.Structure import ct2dot
 
 # Load RNA-FM model
 # rna_fm_model, alphabet = fm.pretrained.rna_fm_t12()
@@ -77,7 +77,7 @@ def seq2kmer(seq, k):
     return kmers
 
 
-def run_preds(fnc, out_path, in_path='bpRNA_1M/dbnFiles/allDbn.dbn', allow_errors=False,
+def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_errors=False,
                                                                      use_structs=False,
                                                                      store_cuts=False,
                                                                      max_len=None,
