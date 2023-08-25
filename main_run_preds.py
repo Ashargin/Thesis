@@ -3,6 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import sys
+sys.path.append("IPyRSSA")
+
 if platform.system() == 'Linux':
     from predict import mxfold2_predict, linearfold_predict, ufold_predict, divide_predict, \
                         divide_get_cuts, linearfold_get_cuts
