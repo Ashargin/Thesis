@@ -14,6 +14,7 @@ from tensorflow import keras
 
 sys.path.append('/mnt/e/Scripts')
 sys.path.append('/mnt/e/Scripts/UFold')
+import mxfold2
 from mxfold2.predict import Predict
 # from UFold.ufold_predict import main as main_ufold
 
@@ -57,7 +58,7 @@ class Args:
 
 mxfold2_predictor = Predict()
 args = Args()
-conf = '/home/loico/anaconda3/envs/mxfold2/lib/python3.7/site-packages/mxfold2/models/TrainSetAB.conf'
+conf = Path(mxfold2.__file__).parents[0] / "models/TrainSetAB.conf"
 
 # seed
 if args.seed >= 0:
@@ -112,9 +113,13 @@ def mxfold2_predict(seqs):
             preds += preds_batch
             bps += bps_batch
     ttot = time.time() - tstart
-    t = torch.cuda.get_device_properties(0).total_memory
-    r = torch.cuda.memory_reserved(0)
-    memory = r / t
+
+    if args.gpu >= 0:
+        t = torch.cuda.get_device_properties(0).total_memory
+        r = torch.cuda.memory_reserved(0)
+        memory = r / t
+    else:
+        r = t = memory = -1
 
     print('MX D')
     if len(preds) == 1:
