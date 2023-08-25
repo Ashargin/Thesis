@@ -6,7 +6,7 @@ import seaborn as sns
 # import fm
 import torch
 # from transformers import AutoTokenizer, AutoModel
-from IPyRSSA.Structure import ct2dot
+# from IPyRSSA.Structure import ct2dot
 
 # Load RNA-FM model
 # rna_fm_model, alphabet = fm.pretrained.rna_fm_t12()
