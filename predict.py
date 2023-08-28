@@ -86,7 +86,6 @@ def mxfold2_predict(seqs):
     if isinstance(seqs, str):
         seqs = [seqs]
 
-    print('MX A')
     # clear memory
     if args.gpu >= 0:
         t = torch.cuda.get_device_properties(0).total_memory
@@ -96,7 +95,6 @@ def mxfold2_predict(seqs):
         if r > 0. * t:
             torch.cuda.empty_cache()
 
-    print('MX B')
     # predict
     scs = []
     preds = []
@@ -104,7 +102,6 @@ def mxfold2_predict(seqs):
     tstart = time.time()
     mxfold2_predictor.test_loader = DataLoader(seqs, batch_size=1, shuffle=False) # data loader
     mxfold2_predictor.model.eval()
-    print('MX C')
     with torch.no_grad():
         for seq_batch in mxfold2_predictor.test_loader:
             scs_batch, preds_batch, bps_batch = mxfold2_predictor.model(seq_batch)
@@ -116,7 +113,6 @@ def mxfold2_predict(seqs):
     r = torch.cuda.memory_reserved(0)
     memory = r / t
 
-    print('MX D')
     if len(preds) == 1:
         scs = scs[0]
         preds = preds[0]
@@ -312,7 +308,6 @@ def linearfold_get_cuts(seq):
 
 def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxfold2_predict,
                    struct='', cuts_file=None, rna_name=''):
-    print(len(seq))
     tstart = time.time()
 
     if len(seq) <= max_length:
@@ -328,7 +323,6 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
         line = f'{rna_name.split("#Name: ")[1]},{seq},{str(cuts).replace(",", "")},{outer}\n'
         cuts_file.write(line)
 
-    print('A')
     # Cut sequence into subsequences
     random_cuts = [int(len(seq) / 3), int(len(seq) * 2 / 3)]
     if not cuts:
@@ -347,7 +341,6 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
         outer_bounds = [inner_bounds[0], inner_bounds[-1]]
         inner_bounds = inner_bounds[1:-1]
 
-    print('B')
     # Predict subsequences
     preds = []
     outer_preds = []
@@ -374,7 +367,6 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
         preds.append(pred)
         memories.append(memory)
 
-    print('C')
     if outer_bounds:
         left_subseq = seq[outer_bounds[0][0]:outer_bounds[0][1]]
         right_subseq = seq[outer_bounds[1][0]:outer_bounds[1][1]]
@@ -402,7 +394,6 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
         outer_preds = [left_pred, right_pred]
         memories.append(memory)
 
-    print('D')
     # Patch sub predictions into global prediction
     global_pred = ''.join(preds)
     if outer_bounds:
