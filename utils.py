@@ -146,7 +146,7 @@ def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_error
             pred, _, _, ttot, memory = fnc(seq, **kwargs)
         if not store_cuts:
             line = f'{header.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
-            with open(cuts_path, 'a') as f_out:
+            with open(out_path, 'a') as f_out:
                 f_out.write(line)
 
 
