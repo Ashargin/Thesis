@@ -12,11 +12,15 @@ import torch
 from torch.utils.data import DataLoader
 from tensorflow import keras
 
-sys.path.append('/mnt/e/Scripts')
-sys.path.append('/mnt/e/Scripts/UFold')
+path_scripts = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..'))
+path_ufold = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'UFold'))
+path_linearfold = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'LinearFold'))
+path_rnapar = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'RNAPar'))
+sys.path.append(path_scripts)
+sys.path.append(path_ufold)
 import mxfold2
 from mxfold2.predict import Predict
-# from UFold.ufold_predict import main as main_ufold
+from UFold.ufold_predict import main as main_ufold
 
 from utils import format_data
 from models import inv_exp_distance_to_cut_loss
@@ -84,6 +88,8 @@ if args.gpu >= 0:
 
 
 def mxfold2_predict(seqs):
+    tstart = time.time()
+
     if isinstance(seqs, str):
         seqs = [seqs]
 
@@ -100,7 +106,6 @@ def mxfold2_predict(seqs):
     scs = []
     preds = []
     bps = []
-    tstart = time.time()
     mxfold2_predictor.test_loader = DataLoader(seqs, batch_size=1, shuffle=False) # data loader
     mxfold2_predictor.model.eval()
     with torch.no_grad():
@@ -109,7 +114,6 @@ def mxfold2_predict(seqs):
             scs += scs_batch.tolist()
             preds += preds_batch
             bps += bps_batch
-    ttot = time.time() - tstart
 
     if args.gpu >= 0:
         t = torch.cuda.get_device_properties(0).total_memory
@@ -123,10 +127,14 @@ def mxfold2_predict(seqs):
         preds = preds[0]
         bps = bps[0]
 
+    ttot = time.time() - tstart
+
     return preds, scs, bps, ttot, memory
 
 
 def ufold_predict(seqs):
+    tstart = time.time()
+
     if isinstance(seqs, str):
         seqs = [seqs]
 
@@ -140,7 +148,7 @@ def ufold_predict(seqs):
 
     # prepare input file
     cwd = os.getcwd()
-    os.chdir(r'/mnt/e/Scripts/UFold')
+    os.chdir(path_ufold)
     input_path = os.path.join('data', 'input.txt')
     output_path = os.path.join('results', 'input_dot_ct_file.txt')
     with open(input_path, 'w') as f:
@@ -148,9 +156,7 @@ def ufold_predict(seqs):
             f.write(f'>{i}\n{s}\n')
 
     # predict
-    tstart = time.time()
     main_ufold()
-    ttot = time.time() - tstart
     t = torch.cuda.get_device_properties(0).total_memory
     r = torch.cuda.memory_reserved(0)
     memory = r / t
@@ -167,19 +173,21 @@ def ufold_predict(seqs):
     os.remove(output_path)
     os.chdir(cwd)
 
+    ttot = time.time() - tstart
+
     return preds, None, None, ttot, memory
 
 
 def linearfold_predict(seqs):
+    tstart = time.time()
+
     if isinstance(seqs, str):
         seqs = [seqs]
 
     # predict
     cwd = os.getcwd()
-    os.chdir(r'/mnt/e/Scripts/LinearFold')
-    tstart = time.time()
+    os.chdir(path_linearfold)
     preds = [os.popen(f'echo {s} | ./linearfold').read() for s in seqs]
-    ttot = time.time() - tstart
 
     # read output
     preds = [r.split('\n')[1].split()[0] if not r.startswith('Unrecognized')
@@ -189,20 +197,26 @@ def linearfold_predict(seqs):
 
     os.chdir(cwd)
 
+    ttot = time.time() - tstart
+
     return preds, None, None, ttot, 0.
 
 
 def rnapar_predict(seqs):
+    tstart = time.time()
+
     if isinstance(seqs, str):
         seqs = [seqs]
 
     # predict
     cwd = os.getcwd()
-    os.chdir(r'/mnt/e/Scripts/RNAPar')
+    os.chdir(path_rnapar)
     os.popen('python predict.py -i ./data/test.fasta -o ./predict/test.data -w ./models/weight-1.h5 -K 6 -C 61 -U 115 -N 53')
 
     if len(preds) == 1:
         preds = preds[0]
+
+    ttot = time.time() - tstart
 
     return preds, None, None, ttot, 0.
 
@@ -403,7 +417,7 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
     global_pred = ''.join(preds)
     if outer_bounds:
         global_pred = outer_preds[0] + global_pred + outer_preds[1]
-    ttot = time.time() - tstart
     memory = max(memories)
+    ttot = time.time() - tstart
 
     return global_pred, None, None, ttot, memory
