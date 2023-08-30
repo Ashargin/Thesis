@@ -114,6 +114,7 @@ def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_error
         f_out = open(out_path, 'w')
         f_out.write('rna_name,seq,cuts,outer\n')
         n_processed = 0
+    f_out.close()
 
     def dummy_response(input_len):
         return '?' * input_len, 0., 1.
@@ -129,7 +130,7 @@ def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_error
         if use_structs:
             kwargs['struct'] = struct
         if store_cuts:
-            kwargs['cuts_file'] = f_out
+            kwargs['cuts_path'] = out_path
             kwargs['rna_name'] = header
 
         if max_len is not None and len(seq) > max_len:
@@ -145,8 +146,8 @@ def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_error
             pred, _, _, ttot, memory = fnc(seq, **kwargs)
         if not store_cuts:
             line = f'{header.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
-            f_out.write(line)
-    f_out.close()
+            with open(cuts_path, 'a') as f_out:
+                f_out.write(line)
 
 
 def get_scores_df(preds_path):

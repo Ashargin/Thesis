@@ -326,11 +326,11 @@ def linearfold_get_cuts(seq):
 
 
 def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxfold2_predict,
-                   struct='', cuts_file=None, rna_name=''):
+                   struct='', cuts_path=None, rna_name=''):
     tstart = time.time()
 
     if len(seq) <= max_length:
-        if cuts_file is not None:
+        if cuts_path is not None:
             return '.' * len(seq), None, None, 0., 0.
         return predict_fnc(seq)
 
@@ -338,9 +338,10 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
         cuts, outer = oracle_get_cuts(struct)
     else:
         cuts, outer = cut_fnc(seq)
-    if cuts_file is not None:
+    if cuts_path is not None:
         line = f'{rna_name.split("#Name: ")[1]},{seq},{str(cuts).replace(",", "")},{outer}\n'
-        cuts_file.write(line)
+        with open(cuts_path, 'a') as f_out:
+            f_out.write(line)
 
     # Cut sequence into subsequences
     random_cuts = [int(len(seq) / 3), int(len(seq) * 2 / 3)]
@@ -374,13 +375,13 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
                                                               struct=substruct,
-                                                              cuts_file=cuts_file,
+                                                              cuts_path=cuts_path,
                                                               rna_name=rna_name)
         else:
             pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
-                                                              cuts_file=cuts_file,
+                                                              cuts_path=cuts_path,
                                                               rna_name=rna_name)
 
         preds.append(pred)
@@ -400,13 +401,13 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
                                                               struct=substruct,
-                                                              cuts_file=cuts_file,
+                                                              cuts_path=cuts_path,
                                                               rna_name=rna_name)
         else:
             pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
-                                                              cuts_file=cuts_file,
+                                                              cuts_path=cuts_path,
                                                               rna_name=rna_name)
 
         left_pred, right_pred = pred[:len(left_subseq)], pred[len(left_subseq):]
