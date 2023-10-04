@@ -81,7 +81,8 @@ def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_error
                                                                      use_structs=False,
                                                                      store_cuts=False,
                                                                      max_len=None,
-                                                                     kwargs={}):
+                                                                     kwargs={},
+                                                                     compute_frac=None):
     # Read input
     with open(in_path, 'r') as f:
         content = f.read()
@@ -122,6 +123,7 @@ def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_error
     # Run
     print(f'Predicting to {out_path}')
     print(f'{n_processed}/{n} already processed')
+    skip_counter = 0.
     for i, (header, seq, struct) in enumerate(zip(headers, seqs, structs)):
         if i < n_processed:
             continue
@@ -133,17 +135,24 @@ def run_preds(fnc, out_path, in_path='bpRNA_1m/dbnFiles/allDbn.dbn', allow_error
             kwargs['cuts_path'] = out_path
             kwargs['rna_name'] = header
 
-        if max_len is not None and len(seq) > max_len:
+        if compute_frac is not None and skip_counter < 0:
+            skip_counter += compute_frac
+            pred, ttot, memory = dummy_response(len(seq))
+        elif max_len is not None and len(seq) > max_len:
             print(f'Skipping sequence of length {len(seq)}')
             pred, ttot, memory = dummy_response(len(seq))
         elif allow_errors:
             try:
                 pred, _, _, ttot, memory = fnc(seq, **kwargs)
+                if compute_frac is not None:
+                    skip_counter += compute_frac - 1
             except (RuntimeError, IndexError, ValueError) as e:
                 print(f'Failed: length {len(seq)}, error {e}')
                 pred, ttot, memory = dummy_response(len(seq))
         else:
             pred, _, _, ttot, memory = fnc(seq, **kwargs)
+            if compute_frac is not None:
+                skip_counter += compute_frac - 1
         if not store_cuts:
             line = f'{header.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
             with open(out_path, 'a') as f_out:
@@ -160,6 +169,10 @@ def get_scores_df(preds_path):
     sen = []
     fscore = []
     for i, (y, y_hat) in enumerate(zip(df_preds.struct, df_preds.pred)):
+        # Remove pseudoknots
+        y = re.sub('[^\(\)\.]', '.', y)
+        y_hat = re.sub('[^\(\)\.]', '.', y_hat)
+
         if i % int(n / 10) == 0:
             print(f'{10 * int(i / int(n / 10))}%')
 

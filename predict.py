@@ -325,11 +325,12 @@ def linearfold_get_cuts(seq):
     return oracle_get_cuts(preds)
 
 
-def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxfold2_predict,
-                   struct='', cuts_path=None, rna_name=''):
+def divide_predict(seq, max_length=200, max_steps=None, cut_fnc=divide_get_cuts,
+                   predict_fnc=mxfold2_predict, struct='', cuts_path=None,
+                   rna_name=''):
     tstart = time.time()
 
-    if len(seq) <= max_length:
+    if len(seq) <= max_length or max_steps == 0:
         if cuts_path is not None:
             return '.' * len(seq), None, None, 0., 0.
         return predict_fnc(seq)
@@ -365,6 +366,7 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
     preds = []
     outer_preds = []
     memories = []
+    max_steps = max_steps - 1 if max_steps is not None else None
     for left_b, right_b in inner_bounds:
         subseq = seq[left_b:right_b]
 
@@ -372,6 +374,7 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
             substruct = struct[left_b:right_b]
             assert substruct.count('(') == substruct.count(')')
             pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              max_steps = max_steps,
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
                                                               struct=substruct,
@@ -379,6 +382,7 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
                                                               rna_name=rna_name)
         else:
             pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              max_steps = max_steps,
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
                                                               cuts_path=cuts_path,
@@ -398,6 +402,7 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
             substruct = left_substruct + right_substruct
             assert substruct.count('(') == substruct.count(')')
             pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              max_steps = max_steps,
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
                                                               struct=substruct,
@@ -405,6 +410,7 @@ def divide_predict(seq, max_length=200, cut_fnc=divide_get_cuts, predict_fnc=mxf
                                                               rna_name=rna_name)
         else:
             pred, _, _, _, memory = divide_predict(subseq, max_length=max_length,
+                                                              max_steps = max_steps,
                                                               cut_fnc=cut_fnc,
                                                               predict_fnc=predict_fnc,
                                                               cuts_path=cuts_path,
