@@ -1,7 +1,8 @@
 import os
 import numpy as np
-from utils import pairs_to_struct
 from pathlib import Path
+
+from src.utils import pairs_to_struct
 
 bpseq_paths = [
     Path("rnapar_raw_data/ArchiveII"),

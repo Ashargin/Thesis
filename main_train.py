@@ -8,13 +8,13 @@ from transformers import AutoTokenizer, AutoModel
 from scipy import signal
 from pathlib import Path
 
-from models import (
+from src.models import (
     TransformerModel,
     NonTransformerModel,
     min_distance_to_cut_loss,
     inv_exp_distance_to_cut_loss,
 )
-from utils import seq2kmer
+from src.utils import seq2kmer
 
 # Load model
 model = NonTransformerModel()

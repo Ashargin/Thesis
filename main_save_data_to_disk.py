@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
-from utils import format_data
 import time
 import pickle
 import scipy
 import os
 from pathlib import Path
+
+from src.utils import format_data
 
 # Download and prepare dataset
 df_train = pd.read_csv(Path("resources/data/train.csv"), index_col=0)

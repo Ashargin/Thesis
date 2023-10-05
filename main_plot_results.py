@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-from utils import get_scores_df
+from src.utils import get_scores_df
 
 ## Score predictions
 # mxfold2_scores = get_scores_df(Path("resources/mxfold2_preds.csv"))

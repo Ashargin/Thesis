@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from predict import (
+from src.predict import (
     mxfold2_predict,
     linearfold_predict,
     ufold_predict,
@@ -8,7 +8,7 @@ from predict import (
     divide_get_cuts,
     linearfold_get_cuts,
 )
-from utils import run_preds
+from src.utils import run_preds
 
 run_preds(
     ufold_predict,

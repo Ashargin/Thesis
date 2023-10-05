@@ -22,8 +22,8 @@ import mxfold2
 from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
 
-from utils import format_data
-from models import inv_exp_distance_to_cut_loss
+from src.utils import format_data
+from src.models import inv_exp_distance_to_cut_loss
 
 my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
 my_model.compile(

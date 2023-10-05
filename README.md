@@ -15,5 +15,5 @@ pip install -r requirements.txt
 ## Then, you can run the script to launch predictions :
 
 ``` console
-python main_run_preds.py
+python main_plot_results.py
 ```
