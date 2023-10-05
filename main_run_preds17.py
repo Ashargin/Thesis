@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from predict import (
     mxfold2_predict,
     linearfold_predict,
@@ -10,7 +12,7 @@ from utils import run_preds
 
 run_preds(
     divide_predict,
-    "resources/divide_motifs_5step_mx_preds.csv",
+    Path("resources/divide_motifs_5step_mx_preds.csv"),
     kwargs={
         "max_steps": 5,
         "cut_fnc": divide_get_cuts,  # with motifs input format

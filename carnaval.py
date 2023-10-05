@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 sys.path.append("carnaval_dataset")
 import RIN
@@ -10,12 +11,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Open carnaval dict # graphs
-# f = open(r'carnaval_dataset\graphs_2.92_nx3_with_SSEs.pickle', 'rb')
+# f = open(Path("carnaval_dataset/graphs_2.92_nx3_with_SSEs.pickle"), 'rb')
 # carnaval_dict = pickle.load(f)
 # f.close()
 
 # Open carnaval dict # RINs
-f = open(r"carnaval_dataset\CaRNAval_1_as_dictionnary.nxpickled", "rb")
+f = open(Path("carnaval_dataset/CaRNAval_1_as_dictionnary.nxpickled"), "rb")
 carnaval_dict = pickle.load(f)
 f.close()
 rins = [carnaval_dict[i + 1] for i in range(len(carnaval_dict))]
@@ -43,4 +44,4 @@ motif_seqs = pd.Series(
     [graph_to_motif_seq(rin.graph) for rin in rins], index=[rin.ID for rin in rins]
 ).drop_duplicates()
 motif_seqs.name = "motif_seq"
-motif_seqs.to_csv(r"resources\motif_seqs.csv")
+motif_seqs.to_csv(Path("resources/motif_seqs.csv"))

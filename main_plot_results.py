@@ -1,35 +1,36 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pathlib import Path
 
 from utils import get_scores_df
 
 ## Score predictions
-# mxfold2_scores = get_scores_df('resources/mxfold2_preds.csv')
-# linearfold_scores = get_scores_df('resources/linearfold_preds.csv')
-# ufold_scores = get_scores_df('resources/ufold_preds.csv')
-# divide_cheat_200_lf_scores = get_scores_df('resources/divide_cheat_200_lf_preds.csv')
-# divide_cheat_200_mx_scores = get_scores_df('resources/divide_cheat_200_mx_preds.csv')
-# divide_cheat_400_mx_scores = get_scores_df('resources/divide_cheat_400_mx_preds.csv')
-# divide_cheat_600_mx_scores = get_scores_df('resources/divide_cheat_600_mx_preds.csv')
-# divide_cheat_800_mx_scores = get_scores_df('resources/divide_cheat_800_mx_preds.csv')
-# divide_cheat_1000_mx_scores = get_scores_df('resources/divide_cheat_1000_mx_preds.csv')
-# divide_linearfoldcuts_200_lf_scores = get_scores_df('resources/divide_linearfoldcuts_200_lf_preds.csv')
-# divide_linearfoldcuts_200_mx_scores = get_scores_df('resources/divide_linearfoldcuts_200_mx_preds.csv')
-# divide_linearfoldcuts_400_mx_scores = get_scores_df('resources/divide_linearfoldcuts_400_mx_preds.csv')
-# divide_linearfoldcuts_600_mx_scores = get_scores_df('resources/divide_linearfoldcuts_600_mx_preds.csv')
-# divide_linearfoldcuts_800_mx_scores = get_scores_df('resources/divide_linearfoldcuts_800_mx_preds.csv')
-# divide_linearfoldcuts_1000_mx_scores = get_scores_df('resources/divide_linearfoldcuts_1000_mx_preds.csv')
-# divide_motifs_200_mx_scores = get_scores_df('resources/divide_motifs_200_mx_preds.csv')
-# divide_motifs_400_mx_scores = get_scores_df('resources/divide_motifs_400_mx_preds.csv')
-# divide_motifs_600_mx_scores = get_scores_df('resources/divide_motifs_600_mx_preds.csv')
-# divide_motifs_800_mx_scores = get_scores_df('resources/divide_motifs_800_mx_preds.csv')
-# divide_motifs_1000_mx_scores = get_scores_df('resources/divide_motifs_1000_mx_preds.csv')
-# divide_motifs_1step_mx_scores = get_scores_df('resources/divide_motifs_1step_mx_preds.csv')
-# divide_motifs_2step_mx_scores = get_scores_df('resources/divide_motifs_2step_mx_preds.csv')
-# divide_motifs_3step_mx_scores = get_scores_df('resources/divide_motifs_3step_mx_preds.csv')
-# divide_motifs_4step_mx_scores = get_scores_df('resources/divide_motifs_4step_mx_preds.csv')
-# divide_motifs_5step_mx_scores = get_scores_df('resources/divide_motifs_5step_mx_preds.csv')
+# mxfold2_scores = get_scores_df(Path("resources/mxfold2_preds.csv"))
+# linearfold_scores = get_scores_df(Path("resources/linearfold_preds.csv"))
+# ufold_scores = get_scores_df(Path("resources/ufold_preds.csv"))
+# divide_cheat_200_lf_scores = get_scores_df(Path("resources/divide_cheat_200_lf_preds.csv"))
+# divide_cheat_200_mx_scores = get_scores_df(Path("resources/divide_cheat_200_mx_preds.csv"))
+# divide_cheat_400_mx_scores = get_scores_df(Path("resources/divide_cheat_400_mx_preds.csv"))
+# divide_cheat_600_mx_scores = get_scores_df(Path("resources/divide_cheat_600_mx_preds.csv"))
+# divide_cheat_800_mx_scores = get_scores_df(Path("resources/divide_cheat_800_mx_preds.csv"))
+# divide_cheat_1000_mx_scores = get_scores_df(Path("resources/divide_cheat_1000_mx_preds.csv"))
+# divide_linearfoldcuts_200_lf_scores = get_scores_df(Path("resources/divide_linearfoldcuts_200_lf_preds.csv"))
+# divide_linearfoldcuts_200_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_200_mx_preds.csv"))
+# divide_linearfoldcuts_400_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_400_mx_preds.csv"))
+# divide_linearfoldcuts_600_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_600_mx_preds.csv"))
+# divide_linearfoldcuts_800_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_800_mx_preds.csv"))
+# divide_linearfoldcuts_1000_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_1000_mx_preds.csv"))
+# divide_motifs_200_mx_scores = get_scores_df(Path("resources/divide_motifs_200_mx_preds.csv"))
+# divide_motifs_400_mx_scores = get_scores_df(Path("resources/divide_motifs_400_mx_preds.csv"))
+# divide_motifs_600_mx_scores = get_scores_df(Path("resources/divide_motifs_600_mx_preds.csv"))
+# divide_motifs_800_mx_scores = get_scores_df(Path("resources/divide_motifs_800_mx_preds.csv"))
+# divide_motifs_1000_mx_scores = get_scores_df(Path("resources/divide_motifs_1000_mx_preds.csv"))
+# divide_motifs_1step_mx_scores = get_scores_df(Path("resources/divide_motifs_1step_mx_preds.csv"))
+# divide_motifs_2step_mx_scores = get_scores_df(Path("resources/divide_motifs_2step_mx_preds.csv"))
+# divide_motifs_3step_mx_scores = get_scores_df(Path("resources/divide_motifs_3step_mx_preds.csv"))
+# divide_motifs_4step_mx_scores = get_scores_df(Path("resources/divide_motifs_4step_mx_preds.csv"))
+# divide_motifs_5step_mx_scores = get_scores_df(Path("resources/divide_motifs_5step_mx_preds.csv"))
 #
 # mxfold2_scores['model'] = 'MXfold2'
 # linearfold_scores['model'] = 'LinearFold'
@@ -68,9 +69,9 @@ from utils import get_scores_df
 #                   divide_motifs_600_mx_scores, divide_motifs_800_mx_scores,
 #                   divide_motifs_1000_mx_scores])
 # data.reset_index(inplace=True, drop=True)
-# data.to_csv(r'resources\all_results.csv')
+# data.to_csv(Path("resources/all_results.csv"))
 
-data = pd.read_csv(r"resources\all_results.csv", index_col=0)
+data = pd.read_csv(Path("resources/all_results.csv"), index_col=0)
 data = data[data.fscore.notna()]
 data = data[(data.length < 1650) | ((data.length > 2750) & (data.length < 3800))]
 rna_names_all_models = data.groupby("rna_name").model.nunique() == data.model.nunique()

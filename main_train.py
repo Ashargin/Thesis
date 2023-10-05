@@ -6,6 +6,7 @@ from tensorflow import keras
 import torch
 from transformers import AutoTokenizer, AutoModel
 from scipy import signal
+from pathlib import Path
 
 from models import (
     TransformerModel,
@@ -33,7 +34,7 @@ def motif_cache_data_generator(folder_path, max_len=None):
     seq_mat, cuts_mat, outer = None, None, None
     i = 0
     while True:
-        with open(os.path.join(folder_path, files[i % len(files)]), "rb") as infile:
+        with open(folder_path / files[i % len(files)], "rb") as infile:
             seq_mat, cuts_mat, outer = pickle.load(infile)
 
         seq_mat = seq_mat.toarray()
@@ -97,10 +98,10 @@ def dnabert_data_generator(csv_path, max_len=None):
 
 
 # Fit model
-train_path = r"resources/data/formatted_train"
-test_path = r"resources/data/formatted_test"
-# train_csv_path = r'resources\data\train.csv'
-# test_csv_path = r'resources\data\test.csv'
+train_path = Path("resources/data/formatted_train")
+test_path = Path("resources/data/formatted_test")
+# train_csv_path = Path("resources\data\train.csv")
+# test_csv_path = Path("resources\data\test.csv")
 n_train = len(os.listdir(train_path))
 n_test = len(os.listdir(test_path))
 history = model.model.fit(
@@ -111,7 +112,7 @@ history = model.model.fit(
     validation_steps=305,
 )
 
-model.model.save(r"resources/models/model")
+model.model.save(Path("resources/models/model"))
 
 import matplotlib.pyplot as plt
 
@@ -123,7 +124,7 @@ plt.plot(X, val_loss, label="val_loss")
 plt.legend()
 plt.show()
 
-my_model = keras.models.load_model(r"resources/models/model", compile=False)
+my_model = keras.models.load_model(Path("resources/models/model"), compile=False)
 my_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,

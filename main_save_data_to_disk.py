@@ -5,21 +5,20 @@ import time
 import pickle
 import scipy
 import os
+from pathlib import Path
 
 # Download and prepare dataset
-df_train = pd.read_csv(r"resources\data\train.csv", index_col=0)
-df_test = pd.read_csv(r"resources\data\test.csv", index_col=0)
+df_train = pd.read_csv(Path("resources/data/train.csv"), index_col=0)
+df_test = pd.read_csv(Path("resources/data/test.csv"), index_col=0)
 print(df_train.shape[0], "Training sequences")
 print(df_test.shape[0], "Validation sequences")
 
-files = os.listdir(r"resources/data/formatted")
+files = os.listdir(Path("resources/data/formatted"))
 idxs = [int(f.split(".")[0]) for f in files]
 df = df_train[
     ~df_train.index.isin(idxs)
 ]  ################### filter over missing observations
-outpath = os.path.join(
-    "resources", "data", "formatted_train"
-)  ################# adjust path
+outpath = Path("resources/data/formatted_train")  ################# adjust path
 n = df.shape[0]
 
 tstart = time.time()
@@ -42,7 +41,7 @@ for i, (idx, seq, cuts, outer) in enumerate(zip(df.index, df.seq, df.cuts, df.ou
         scipy.sparse.csr_matrix(outer_res),
     )
 
-    with open(os.path.join(outpath, f"{idx}.pkl"), "wb") as outfile:
+    with open(outpath / f"{idx}.pkl", "wb") as outfile:
         pickle.dump(res, outfile, pickle.HIGHEST_PROTOCOL)
 
     del res

@@ -2,8 +2,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pathlib import Path
 
-dbn_path = os.path.join("bpRNA_1m", "dbnFiles")
+dbn_path = Path("bpRNA_1m/dbnFiles")
 letters = {
     "A",
     "C",
@@ -34,13 +35,13 @@ brackets = {".", "(", ")", "[", "]", "<", ">", "{", "}", "a", "A", "b", "B", "c"
 lens = []
 letter_counts = {}
 bracket_counts = {}
-all_dbn_path = os.path.join(dbn_path, "allDbn.dbn")
+all_dbn_path = dbn_path / "allDbn.dbn"
 f_out = open(all_dbn_path, "w")
 for i, filename in enumerate(os.listdir(dbn_path)):
     if i % 10000 == 0:
         print(i)
     if filename.startswith("bpRNA"):
-        file_path = os.path.join(dbn_path, filename)
+        file_path = dbn_path / filename
         with open(file_path, "r") as f:
             lines = f.read().split("\n")
             assert (

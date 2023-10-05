@@ -2,13 +2,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+from pathlib import Path
 
 rna = "CRW_1"
 
 # bpseqFiles
 skiprows = 1 * ("RNP" in rna or "SPR" in rna or "tmRNA" in rna) + 2 * ("CRW" in rna)
 df = pd.read_csv(
-    rf"bpRNA_1m\bpseqFiles\bpRNA_{rna}.bpseq",
+    Path(f"bpRNA_1m/bpseqFiles/bpRNA_{rna}.bpseq"),
     sep=" ",
     skiprows=skiprows,
     header=None,
@@ -16,7 +17,7 @@ df = pd.read_csv(
 ).set_index("id")
 
 # staFiles
-sta = pd.read_csv(rf"bpRNA_1m\staFiles\bpRNA_{rna}.sta", skiprows=2, header=None).T
+sta = pd.read_csv(Path(f"bpRNA_1m/staFiles/bpRNA_{rna}.sta"), skiprows=2, header=None).T
 sta.columns = ["sequence", "pair_type", "structure", "pseudoknot"]
 
 for c in sta.columns[1:]:

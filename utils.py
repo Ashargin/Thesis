@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import re
 import seaborn as sns
+from pathlib import Path
 
 # import fm
 import torch
@@ -16,7 +17,7 @@ import torch
 # rna_fm_model.eval()  # disables dropout for deterministic results
 
 # Read motifs
-df_motifs = pd.read_csv(os.path.join("resources", "motif_seqs.csv"), index_col=0)
+df_motifs = pd.read_csv(Path("resources/motif_seqs.csv"), index_col=0)
 df_motifs = df_motifs[df_motifs.time < 0.012]
 
 # Load DNABERT
@@ -82,7 +83,7 @@ def seq2kmer(seq, k):
 def run_preds(
     fnc,
     out_path,
-    in_path="bpRNA_1m/dbnFiles/allDbn.dbn",
+    in_path=Path("bpRNA_1m/dbnFiles/allDbn.dbn"),
     allow_errors=False,
     use_structs=False,
     store_cuts=False,
@@ -104,7 +105,7 @@ def run_preds(
     if store_cuts:
         filename, ext = os.path.splitext(out_path)
         out_path = filename + "_cuts" + ext
-    if not os.path.exists(out_path):
+    if not out_path.exists():
         with open(out_path, "w") as f:
             pass
     if not store_cuts:

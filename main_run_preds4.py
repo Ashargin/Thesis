@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from predict import (
     mxfold2_predict,
     linearfold_predict,
@@ -10,7 +12,7 @@ from utils import run_preds
 
 run_preds(
     divide_predict,
-    "resources/divide_cheat_1step_mx_preds.csv",
+    Path("resources/divide_cheat_1step_mx_preds.csv"),
     use_structs=True,
     kwargs={"max_steps": 1, "predict_fnc": mxfold2_predict},
     compute_frac=0.2,

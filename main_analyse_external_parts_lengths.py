@@ -2,9 +2,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pathlib import Path
 
 # Read data
-txt = open(r"E:\Scripts\Thesis\rnapar_raw_data\allDbn.dbn", "r").read()
+txt = open(Path("rnapar_raw_data/allDbn.dbn"), "r").read()
 lines = txt.split("\n")[:-1]
 names, seqs, structs = lines[0::3], lines[1::3], lines[2::3]
 

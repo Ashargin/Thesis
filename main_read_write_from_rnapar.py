@@ -1,16 +1,17 @@
 import os
 import numpy as np
 from utils import pairs_to_struct
+from pathlib import Path
 
 bpseq_paths = [
-    r"rnapar_raw_data/ArchiveII",
-    r"rnapar_raw_data/bpRNA",
-    r"rnapar_raw_data/PDB/bpseq",
-    r"rnapar_raw_data/RNAStrAlign",
+    Path("rnapar_raw_data/ArchiveII"),
+    Path("rnapar_raw_data/bpRNA"),
+    Path("rnapar_raw_data/PDB/bpseq"),
+    Path("rnapar_raw_data/RNAStrAlign"),
 ]
 dp_paths = [
-    r"rnapar_raw_data/RMDB",
-    r"rnapar_raw_data/RNAStrand",
+    Path("rnapar_raw_data/RMDB"),
+    Path("rnapar_raw_data/RNAStrand"),
 ]
 
 
@@ -22,7 +23,7 @@ def read_bpseq_from_folders(paths):
         for i, f in enumerate(files):
             print(f"Folder {j+1}/{len(paths)}, file {i+1}/{len(files)}")
             name, _ = os.path.splitext(f)
-            txt = open(os.path.join(p, f), "r").read()
+            txt = open(p / f, "r").read()
 
             lines = txt.replace("\t", " ").split("\n")
             lines = [l for l in lines if l and l[0].isdigit()]
@@ -67,7 +68,7 @@ def read_dp_from_folders(paths):
         for i, f in enumerate(files):
             print(f"Folder {j+1}/{len(paths)}, file {i+1}/{len(files)}")
             name, _ = os.path.splitext(f)
-            txt = open(os.path.join(p, f), "r").read()
+            txt = open(p / f, "r").read()
 
             txt = txt.strip()
             if not "\n" in txt:
@@ -98,5 +99,5 @@ def read_dp_from_folders(paths):
 
 txt_from_bpseq = read_bpseq_from_folders(bpseq_paths)
 txt_from_dp = read_dp_from_folders(dp_paths)
-with open("rnapar_raw_data/allDbn.dbn", "w") as f:
+with open(Path("rnapar_raw_data/allDbn.dbn"), "w") as f:
     f.write(txt_from_bpseq + txt_from_dp)

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from predict import (
     mxfold2_predict,
     linearfold_predict,
@@ -10,7 +12,7 @@ from utils import run_preds
 
 run_preds(
     linearfold_predict,
-    "resources/linearfold_preds.csv",
+    Path("resources/linearfold_preds.csv"),
     allow_errors=True,
     compute_frac=0.2,
 )

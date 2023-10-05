@@ -12,14 +12,12 @@ import torch
 from torch.utils.data import DataLoader
 from tensorflow import keras
 
-path_scripts = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-path_ufold = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "UFold"))
-path_linearfold = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "LinearFold")
-)
-path_rnapar = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "RNAPar"))
-sys.path.append(path_scripts)
-sys.path.append(path_ufold)
+path_workdir = Path("..")
+path_ufold = Path("../UFold")
+path_linearfold = Path("../LinearFold")
+path_rnapar = Path("../RNAPar")
+sys.path.append(os.path.abspath(path_workdir))
+sys.path.append(os.path.abspath(path_ufold))
 import mxfold2
 from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
@@ -27,7 +25,7 @@ from UFold.ufold_predict import main as main_ufold
 from utils import format_data
 from models import inv_exp_distance_to_cut_loss
 
-my_model = keras.models.load_model(r"resources/models/model_motifs", compile=False)
+my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
 my_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
@@ -157,8 +155,8 @@ def ufold_predict(seqs):
     # prepare input file
     cwd = os.getcwd()
     os.chdir(path_ufold)
-    input_path = os.path.join("data", "input.txt")
-    output_path = os.path.join("results", "input_dot_ct_file.txt")
+    input_path = Path("data/input.txt")
+    output_path = Path("results/input_dot_ct_file.txt")
     with open(input_path, "w") as f:
         for i, s in enumerate(seqs):
             f.write(f">{i}\n{s}\n")
