@@ -15,4 +15,4 @@ module purge
 # Chargement des modules
 module load pytorch-gpu/py3/1.6.0
 
-python -u main_run_preds14.py
+python -u scripts/run_preds14.py
