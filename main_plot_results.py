@@ -70,46 +70,95 @@ from utils import get_scores_df
 # data.reset_index(inplace=True, drop=True)
 # data.to_csv(r'resources\all_results.csv')
 
-data = pd.read_csv(r'resources\all_results.csv', index_col=0)
+data = pd.read_csv(r"resources\all_results.csv", index_col=0)
 data = data[data.fscore.notna()]
 data = data[(data.length < 1650) | ((data.length > 2750) & (data.length < 3800))]
-rna_names_all_models = data.groupby('rna_name').model.nunique() == data.model.nunique()
-data = data[(data.rna_name.isin(rna_names_all_models[rna_names_all_models].index)) | (data.length >= 1000)]
+rna_names_all_models = data.groupby("rna_name").model.nunique() == data.model.nunique()
+data = data[
+    (data.rna_name.isin(rna_names_all_models[rna_names_all_models].index))
+    | (data.length >= 1000)
+]
 
-data_200 = data[(data.model.str.contains('200')) | (data.model.isin(['MXfold2', 'LinearFold', 'UFold']))]
-data_400 = data[(data.model.str.contains('400')) | (data.model.isin(['MXfold2', 'LinearFold', 'UFold']))]
-data_600 = data[(data.model.str.contains('600')) | (data.model.isin(['MXfold2', 'LinearFold', 'UFold']))]
-data_800 = data[(data.model.str.contains('800')) | (data.model.isin(['MXfold2', 'LinearFold', 'UFold']))]
-data_1000 = data[(data.model.str.contains('1000')) | (data.model.isin(['MXfold2', 'LinearFold', 'UFold']))]
-data_true = data[data.model.str.contains('true')]
-data_linearfoldcuts = data[data.model.str.contains('LinearFold preds')]
-data_motifs = data[data.model.str.contains('Our approach')]
+data_200 = data[
+    (data.model.str.contains("200"))
+    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
+]
+data_400 = data[
+    (data.model.str.contains("400"))
+    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
+]
+data_600 = data[
+    (data.model.str.contains("600"))
+    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
+]
+data_800 = data[
+    (data.model.str.contains("800"))
+    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
+]
+data_1000 = data[
+    (data.model.str.contains("1000"))
+    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
+]
+data_true = data[data.model.str.contains("true")]
+data_linearfoldcuts = data[data.model.str.contains("LinearFold preds")]
+data_motifs = data[data.model.str.contains("Our approach")]
 
 ## Plot scores
 def round_lengths(df, n1=200, n2=400):
     df = df.copy()
-    df.length = df.length.apply(lambda x: round(x / n1) * n1 if x < 1000 else round(x / n2) * n2)
+    df.length = df.length.apply(
+        lambda x: round(x / n1) * n1 if x < 1000 else round(x / n2) * n2
+    )
     return df
 
+
 plt.figure()
-sns.lineplot(data=round_lengths(data), x='length', y='fscore', hue='model', estimator='mean', palette=['tab:green', 'firebrick', 'orangered', 'orange', 'gold', 'lightgoldenrodyellow'])
-plt.xlabel('Sequence length')
-plt.ylabel('F-score')
-plt.title('F-score vs sequence length')
+sns.lineplot(
+    data=round_lengths(data),
+    x="length",
+    y="fscore",
+    hue="model",
+    estimator="mean",
+    palette=[
+        "tab:green",
+        "firebrick",
+        "orangered",
+        "orange",
+        "gold",
+        "lightgoldenrodyellow",
+    ],
+)
+plt.xlabel("Sequence length")
+plt.ylabel("F-score")
+plt.title("F-score vs sequence length")
 plt.ylim([0.25, 0.85])
 plt.show()
 
 ## Plot time and memory constraints
 plt.figure()
-sns.lineplot(data=round_lengths(data, n1=50, n2=50), x='length', y='time', hue='model', estimator='mean', palette=['tab:blue', 'tab:orange', 'tab:olive', 'firebrick'])
-plt.xlabel('Sequence length')
-plt.ylabel('Time (s)')
-plt.title('Computation time vs sequence length')
+sns.lineplot(
+    data=round_lengths(data, n1=50, n2=50),
+    x="length",
+    y="time",
+    hue="model",
+    estimator="mean",
+    palette=["tab:blue", "tab:orange", "tab:olive", "firebrick"],
+)
+plt.xlabel("Sequence length")
+plt.ylabel("Time (s)")
+plt.title("Computation time vs sequence length")
 plt.show()
 
 plt.figure()
-sns.lineplot(data=round_lengths(data, n1=50, n2=50), x='length', y='memory', hue='model', estimator='mean', palette=['tab:blue', 'tab:orange', 'tab:olive', 'firebrick'])
-plt.xlabel('Sequence length')
-plt.ylabel('Memory cost / total memory')
-plt.title('Memory cost vs sequence length')
+sns.lineplot(
+    data=round_lengths(data, n1=50, n2=50),
+    x="length",
+    y="memory",
+    hue="model",
+    estimator="mean",
+    palette=["tab:blue", "tab:orange", "tab:olive", "firebrick"],
+)
+plt.xlabel("Sequence length")
+plt.ylabel("Memory cost / total memory")
+plt.title("Memory cost vs sequence length")
 plt.show()

@@ -8,11 +8,11 @@
 #SBATCH --time=20:00:00              # temps maximum d'execution demande (HH:MM:SS)
 #SBATCH --output=run17_%j.out      # nom du fichier de sortie
 #SBATCH --error=run17_%j.out       # nom du fichier d'erreur (ici commun avec la sortie)
- 
+
 # Nettoyage des modules charges en interactif et herites par defaut
 module purge
-  
+
 # Chargement des modules
 module load pytorch-gpu/py3/1.6.0
-    
+
 python -u main_run_preds17.py

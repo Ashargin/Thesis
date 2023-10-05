@@ -1,5 +1,6 @@
 import sys
-sys.path.append('carnaval_dataset')
+
+sys.path.append("carnaval_dataset")
 import RIN
 
 import pickle
@@ -14,10 +15,10 @@ import matplotlib.pyplot as plt
 # f.close()
 
 # Open carnaval dict # RINs
-f = open(r'carnaval_dataset\CaRNAval_1_as_dictionnary.nxpickled', 'rb')
+f = open(r"carnaval_dataset\CaRNAval_1_as_dictionnary.nxpickled", "rb")
 carnaval_dict = pickle.load(f)
 f.close()
-rins = [carnaval_dict[i+1] for i in range(len(carnaval_dict))]
+rins = [carnaval_dict[i + 1] for i in range(len(carnaval_dict))]
 
 
 def graph_to_motif_seq(g):
@@ -26,16 +27,20 @@ def graph_to_motif_seq(g):
     new_component = np.append(True, nodes[1:] != nodes[:-1] + 1)
     component_idx_start = np.argwhere(new_component).ravel()
     component_idx_end = np.append(component_idx_start[1:], len(nodes))
-    components = [nodes[start:end].tolist() for start, end in zip(component_idx_start,
-                                                                  component_idx_end)]
+    components = [
+        nodes[start:end].tolist()
+        for start, end in zip(component_idx_start, component_idx_end)
+    ]
 
-    motif_seq = '*'.join([''.join([g.nodes[n]['nt'] for n in comp])
-                                                    for comp in components])
+    motif_seq = "*".join(
+        ["".join([g.nodes[n]["nt"] for n in comp]) for comp in components]
+    )
 
     return motif_seq
 
 
-motif_seqs = pd.Series([graph_to_motif_seq(rin.graph) for rin in rins],
-                       index=[rin.ID for rin in rins]).drop_duplicates()
-motif_seqs.name = 'motif_seq'
-motif_seqs.to_csv(r'resources\motif_seqs.csv')
+motif_seqs = pd.Series(
+    [graph_to_motif_seq(rin.graph) for rin in rins], index=[rin.ID for rin in rins]
+).drop_duplicates()
+motif_seqs.name = "motif_seq"
+motif_seqs.to_csv(r"resources\motif_seqs.csv")
