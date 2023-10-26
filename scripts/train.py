@@ -1,5 +1,5 @@
 import os
-import pickle5 as pickle
+import pickle
 import numpy as np
 import pandas as pd
 from tensorflow import keras
