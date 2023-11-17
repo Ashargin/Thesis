@@ -3,9 +3,7 @@
 bpRNA_1m
 .subopt_cache
 carnaval_dataset
-resources/all_results.csv
-resources/divide_cheat_preds_cuts.csv
-resources/*_preds.csv
+resources/results
 resources/data
 rnapar_raw_data
 shaker_data
