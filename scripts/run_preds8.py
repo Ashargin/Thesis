@@ -1,4 +1,8 @@
 from pathlib import Path
+import os
+import sys
+
+sys.path.append(os.getcwd())
 
 from src.predict import (
     mxfold2_predict,
@@ -12,11 +16,11 @@ from src.utils import run_preds
 
 run_preds(
     divide_predict,
-    Path("resources/divide_motifs_2step_mx_preds.csv"),
+    Path("resources/model_on_MAS_sce.csv"),
     kwargs={
-        "max_steps": 2,
+        "max_length": 1000,
         "cut_fnc": divide_get_cuts,  # with motifs input format
         "predict_fnc": mxfold2_predict,
     },
-    compute_frac=0.2,
+    in_path=Path("FoldingBenchmarkMAS_data/sce.dbn"),
 )

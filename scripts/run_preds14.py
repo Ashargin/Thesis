@@ -1,4 +1,8 @@
 from pathlib import Path
+import os
+import sys
+
+sys.path.append(os.getcwd())
 
 from src.predict import (
     mxfold2_predict,
