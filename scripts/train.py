@@ -100,8 +100,8 @@ def dnabert_data_generator(csv_path, max_len=None):
 # Fit model
 train_path = Path("resources/data/formatted_train")
 test_path = Path("resources/data/formatted_test")
-# train_csv_path = Path("resources\data\train.csv")
-# test_csv_path = Path("resources\data\test.csv")
+# train_csv_path = Path("resources/data/train.csv")
+# test_csv_path = Path("resources/data/test.csv")
 n_train = len(os.listdir(train_path))
 n_test = len(os.listdir(test_path))
 history = model.model.fit(
@@ -124,31 +124,40 @@ plt.plot(X, val_loss, label="val_loss")
 plt.legend()
 plt.show()
 
-my_model = keras.models.load_model(Path("resources/models/model"), compile=False)
+my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
 my_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
     metrics=["accuracy"],
     run_eagerly=True,
 )
-test_datagen = motif_cache_data_generator(test_path)
+test_datagen = motif_cache_data_generator(Path("resources/data/temptest"))
 
 
 def plot_cut_probabilities():
     seq_mat, cuts_mat = next(test_datagen)
     preds = my_model(seq_mat).numpy().ravel()
-    y_true = np.zeros_like(preds)
-    y_true[cuts_mat.ravel().astype(int)] = 1
-    y_true /= y_true.sum()
+    cuts_mat = cuts_mat.ravel().astype(int)
 
     X = np.arange(len(preds)) + 1
-    plt.plot(X, y_true, "o", label="true")
-    plt.plot(X, preds, label="preds")
+    for i, x in enumerate(X[cuts_mat]):
+        plt.plot(
+            [x, x],
+            [0, 1],
+            color="black",
+            linewidth=1.5,
+            label="True cut points" if i == 0 else "",
+        )
+    plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
 
     peaks = signal.find_peaks(preds, height=0.28, distance=12)[0]
-    for x in peaks:
-        plt.plot([x, x], [0, 1], color="black")
-    print(peaks)
+    plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
 
+    plt.xlim([X[0], X[-1]])
+    plt.ylim([0, 1])
+
+    plt.title(
+        "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
+    )
     plt.legend()
     plt.show()

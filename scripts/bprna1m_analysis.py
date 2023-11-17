@@ -74,6 +74,8 @@ for i, filename in enumerate(os.listdir(dbn_path)):
 f_out.close()
 
 sns.kdeplot(lens, fill=True, linewidth=2)
+plt.xlabel("Sequence length")
+plt.title("Length density in the bpRNA_1m dataset")
 plt.show()
 
 
