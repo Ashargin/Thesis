@@ -6,10 +6,9 @@ import seaborn as sns
 from pathlib import Path
 
 # import fm
-import torch
+# import torch
 
 # from transformers import AutoTokenizer, AutoModel
-# from IPyRSSA.Structure import ct2dot
 
 # Load RNA-FM model
 # rna_fm_model, alphabet = fm.pretrained.rna_fm_t12()
@@ -51,16 +50,6 @@ def struct_to_pairs(struct):
 
     pairs = np.array([pairs[i + 1] for i in range(len(struct))])
     return pairs
-
-
-def pairs_to_struct(pairs):
-    length = len(pairs)
-    pairs_list = []
-    for i, v in enumerate(pairs):
-        if v > i + 1:
-            pairs_list.append((i + 1, v))
-
-    return ct2dot(pairs_list, length)
 
 
 def seq2kmer(seq, k):
@@ -169,9 +158,12 @@ def run_preds(
                 f_out.write(line)
 
 
-def get_scores_df(preds_path):
+def get_scores_df(df_preds):
     # Read data
-    df_preds = pd.read_csv(preds_path)
+    if not isinstance(
+        df_preds, pd.core.frame.DataFrame
+    ):  # if a path is given instead of a dataframe
+        df_preds = pd.read_csv(df_preds)
     n = df_preds.shape[0]
 
     # Compute scores
@@ -294,26 +286,26 @@ def seq_to_motif_matches(seq, **kwargs):
 #     return token_embeddings
 
 
-def seq_to_dnabert(seq):
-    tokenized = dnabert_tokenizer(
-        seq2kmer(seq.replace("U", "T").replace("~", "M"), k=6),
-        padding="longest",
-        pad_to_multiple_of=512,
-    )
-    encoded = dnabert_encoder(
-        torch.tensor([tokenized["input_ids"]]).view(-1, 512),
-        torch.tensor([tokenized["attention_mask"]]).view(-1, 512),
-    )
-    seq_mat, pooled_seq_mat = encoded[0], encoded[1]
-
-    tokens_len = len(seq) - 3
-    seq_mat = np.vstack(seq_mat.detach().numpy())[:tokens_len]
-    seq_mat = np.vstack(
-        [seq_mat[0], seq_mat[0], seq_mat, seq_mat[-1]]
-    )  ###### fix size ?
-    # pooled_seq_mat = np.mean(pooled_seq_mat.detach().numpy(), axis=0)
-
-    return seq_mat
+# def seq_to_dnabert(seq):
+#     tokenized = dnabert_tokenizer(
+#         seq2kmer(seq.replace("U", "T").replace("~", "M"), k=6),
+#         padding="longest",
+#         pad_to_multiple_of=512,
+#     )
+#     encoded = dnabert_encoder(
+#         torch.tensor([tokenized["input_ids"]]).view(-1, 512),
+#         torch.tensor([tokenized["attention_mask"]]).view(-1, 512),
+#     )
+#     seq_mat, pooled_seq_mat = encoded[0], encoded[1]
+#
+#     tokens_len = len(seq) - 3
+#     seq_mat = np.vstack(seq_mat.detach().numpy())[:tokens_len]
+#     seq_mat = np.vstack(
+#         [seq_mat[0], seq_mat[0], seq_mat, seq_mat[-1]]
+#     )  ###### fix size ?
+#     # pooled_seq_mat = np.mean(pooled_seq_mat.detach().numpy(), axis=0)
+#
+#     return seq_mat
 
 
 def format_data(seq, cuts=None, input_format="motifs", **kwargs):

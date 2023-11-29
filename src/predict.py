@@ -233,6 +233,41 @@ def rnapar_predict(seqs):
     return preds, None, None, ttot, 0.0
 
 
+def rnafold_predict(seq):
+    tstart = time.time()
+    output = os.popen(f"echo {seq} | RNAfold").read()
+    pred = output.split("\n")[1].split(" ")[0]
+    ttot = time.time() - tstart
+
+    return pred, None, None, ttot, 0.0
+
+
+def probknot_predict(seq):
+    tstart = time.time()
+    path_in = "temp_in.seq"
+    path_middle = "temp_middle.ct"
+    path_out = "temp_out.txt"
+    if os.path.exists(path_in):
+        os.remove(path_in)
+    if os.path.exists(path_middle):
+        os.remove(path_middle)
+    if os.path.exists(path_out):
+        os.remove(path_out)
+    with open(path_in, "w") as f:
+        f.write(seq)
+
+    os.popen(f"ProbKnot {path_in} {path_middle} --sequence").read()
+    os.popen(f"ct2dot {path_middle} -1 {path_out}").read()
+    pred = open(path_out, "r").read().split("\n")[2]
+
+    os.remove(path_in)
+    os.remove(path_middle)
+    os.remove(path_out)
+    ttot = time.time() - tstart
+
+    return pred, None, None, ttot, 0.0
+
+
 def oracle_get_cuts(struct):
     # Determine depth levels
     struct = re.sub("[^\(\)\.]", ".", struct)
