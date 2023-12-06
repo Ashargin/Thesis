@@ -8,6 +8,7 @@ from src.predict import (
     mxfold2_predict,
     linearfold_predict,
     ufold_predict,
+    rnafold_predict,
     divide_predict,
     divide_get_cuts,
     linearfold_get_cuts,
@@ -15,8 +16,11 @@ from src.predict import (
 from src.utils import run_preds
 
 run_preds(
-    mxfold2_predict,
-    Path("resources/mxfold2_preds.csv"),
-    allow_errors=True,
-    compute_frac=0.2,
+    divide_predict,
+    Path("resources/divide_with_rnafold.csv"),
+    kwargs={
+        "max_length": 1000,
+        "cut_fnc": divide_get_cuts,  # with motifs input format
+        "predict_fnc": rnafold_predict,
+    },
 )
