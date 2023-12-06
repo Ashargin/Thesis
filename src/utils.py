@@ -83,6 +83,8 @@ def run_preds(
     # Read input
     with open(in_path, "r") as f:
         content = f.read()
+    if content[-1] == '\n':
+        content = content[:-1]
     lines = content.split("\n")
     assert len(lines) % 3 == 0
     headers = lines[0::3]

@@ -3,6 +3,7 @@ import sys
 import random
 from pathlib import Path
 import time
+import datetime
 import re
 import numpy as np
 from scipy import signal
@@ -16,8 +17,10 @@ path_workdir = Path("..")
 path_ufold = Path("../UFold")
 path_linearfold = Path("../LinearFold")
 path_rnapar = Path("../RNAPar")
+path_rnastructure = Path("../RNAstructure/exe")
 sys.path.append(os.path.abspath(path_workdir))
 sys.path.append(os.path.abspath(path_ufold))
+sys.path.append(os.path.abspath(path_rnastructure))
 import mxfold2
 from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
@@ -244,15 +247,17 @@ def rnafold_predict(seq):
 
 def probknot_predict(seq):
     tstart = time.time()
-    path_in = "temp_in.seq"
-    path_middle = "temp_middle.ct"
-    path_out = "temp_out.txt"
+    suffix = datetime.datetime.now().strftime('%Y.%m.%d:%H.%M.%S:%f')
+    path_in = f"temp_in_{suffix}.seq"
+    path_middle = f"temp_middle_{suffix}.ct"
+    path_out = f"temp_out_{suffix}.txt"
     if os.path.exists(path_in):
         os.remove(path_in)
     if os.path.exists(path_middle):
         os.remove(path_middle)
     if os.path.exists(path_out):
         os.remove(path_out)
+    seq = re.sub("[^ATCG]", "N", seq)
     with open(path_in, "w") as f:
         f.write(seq)
 
