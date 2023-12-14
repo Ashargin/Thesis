@@ -3,22 +3,21 @@ import pickle
 import numpy as np
 import pandas as pd
 from tensorflow import keras
-import torch
-from transformers import AutoTokenizer, AutoModel
+
+# import torch
+# from transformers import AutoTokenizer, AutoModel
 from scipy import signal
 from pathlib import Path
 
-from src.models import (
-    TransformerModel,
-    NonTransformerModel,
-    min_distance_to_cut_loss,
-    inv_exp_distance_to_cut_loss,
-)
-from src.utils import seq2kmer
+from src.models.mlp import MLP
+from src.models.cnn_1d import CNN1D
+from src.models.loss import inv_exp_distance_to_cut_loss
+
+# from src.utils import seq2kmer
 
 # Load model
-model = NonTransformerModel()
-model.model.compile(
+model = CNN1D()
+model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
     metrics=["accuracy"],
@@ -102,9 +101,9 @@ train_path = Path("resources/data/formatted_train")
 test_path = Path("resources/data/formatted_test")
 # train_csv_path = Path("resources/data/train.csv")
 # test_csv_path = Path("resources/data/test.csv")
-n_train = len(os.listdir(train_path))
-n_test = len(os.listdir(test_path))
-history = model.model.fit(
+# n_train = len(os.listdir(train_path))
+# n_test = len(os.listdir(test_path))
+history = model.fit(
     motif_cache_data_generator(train_path),
     validation_data=motif_cache_data_generator(test_path),
     steps_per_epoch=1267,
@@ -112,7 +111,7 @@ history = model.model.fit(
     validation_steps=305,
 )
 
-model.model.save(Path("resources/models/model"))
+model.save(Path("resources/models/model"))
 
 import matplotlib.pyplot as plt
 

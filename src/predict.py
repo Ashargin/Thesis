@@ -26,9 +26,9 @@ from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
 
 from src.utils import format_data
-from src.models import inv_exp_distance_to_cut_loss
+from src.models.loss import inv_exp_distance_to_cut_loss
 
-my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
+my_model = keras.models.load_model(Path("resources/models/CNN1DX2_dil2"), compile=False)
 my_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
@@ -247,7 +247,7 @@ def rnafold_predict(seq):
 
 def probknot_predict(seq):
     tstart = time.time()
-    suffix = datetime.datetime.now().strftime('%Y.%m.%d:%H.%M.%S:%f')
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_in_{suffix}.seq"
     path_middle = f"temp_middle_{suffix}.ct"
     path_out = f"temp_out_{suffix}.txt"
