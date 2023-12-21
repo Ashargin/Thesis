@@ -28,7 +28,9 @@ from UFold.ufold_predict import main as main_ufold
 from src.utils import format_data
 from src.models.loss import inv_exp_distance_to_cut_loss
 
-my_model = keras.models.load_model(Path("resources/models/CNN1DX2_dil2"), compile=False)
+my_model = keras.models.load_model(
+    Path("resources/models/CNN1D_sequencewise"), compile=False
+)
 my_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
