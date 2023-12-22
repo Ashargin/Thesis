@@ -4,7 +4,8 @@ bpRNA_1m
 .subopt_cache
 carnaval_dataset
 resources/results
-resources/data
+resources/data_splits
+resources/data_structures/train*
 rnapar_raw_data
 shaker_data
 mxfold2_data
