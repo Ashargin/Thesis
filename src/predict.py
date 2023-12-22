@@ -28,10 +28,10 @@ from UFold.ufold_predict import main as main_ufold
 from src.utils import format_data
 from src.models.loss import inv_exp_distance_to_cut_loss
 
-my_model = keras.models.load_model(
+default_model = keras.models.load_model(
     Path("resources/models/CNN1D_sequencewise"), compile=False
 )
-my_model.compile(
+default_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
     metrics=["accuracy"],
@@ -362,10 +362,10 @@ def oracle_get_cuts(struct):
     return cuts, outer
 
 
-def divide_get_cuts(seq, min_height=0.28, min_distance=12):
+def divide_get_cuts(seq, min_height=0.28, min_distance=12, cut_model=default_model):
     seq_mat = format_data(seq).reshape((1, -1, 297))
 
-    cuts = my_model(seq_mat).numpy().ravel()
+    cuts = cut_model(seq_mat).numpy().ravel()
     min_height = min(min_height, max(cuts))
 
     def get_peaks(min_height):
@@ -400,7 +400,7 @@ def divide_predict(
     seq,
     max_length=200,
     max_steps=None,
-    cut_fnc=divide_get_cuts,
+    cut_model=default_model,
     predict_fnc=mxfold2_predict,
     struct="",
     cuts_path=None,
@@ -416,7 +416,7 @@ def divide_predict(
     if struct:
         cuts, outer = oracle_get_cuts(struct)
     else:
-        cuts, outer = cut_fnc(seq)
+        cuts, outer = divide_get_cuts(seq, cut_model=cut_model)
     if cuts_path is not None:
         line = f'{rna_name.split("#Name: ")[1]},{seq},{str(cuts).replace(",", "")},{outer}\n'
         with open(cuts_path, "a") as f_out:
@@ -455,7 +455,7 @@ def divide_predict(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
-                cut_fnc=cut_fnc,
+                cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 struct=substruct,
                 cuts_path=cuts_path,
@@ -466,7 +466,7 @@ def divide_predict(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
-                cut_fnc=cut_fnc,
+                cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 cuts_path=cuts_path,
                 rna_name=rna_name,
@@ -489,7 +489,7 @@ def divide_predict(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
-                cut_fnc=cut_fnc,
+                cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 struct=substruct,
                 cuts_path=cuts_path,
@@ -500,7 +500,7 @@ def divide_predict(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
-                cut_fnc=cut_fnc,
+                cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 cuts_path=cuts_path,
                 rna_name=rna_name,

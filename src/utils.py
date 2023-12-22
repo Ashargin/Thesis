@@ -72,7 +72,7 @@ def seq2kmer(seq, k):
 def run_preds(
     fnc,
     out_path,
-    in_path=Path("bpRNA_1m/dbnFiles/allDbn.dbn"),
+    in_filename="test_sequencewise",
     allow_errors=False,
     use_structs=False,
     store_cuts=False,
@@ -81,11 +81,10 @@ def run_preds(
     compute_frac=None,
 ):
     # Read input
+    in_path = Path("resources/data_structures/{in_filename}.dbn")
     with open(in_path, "r") as f:
         content = f.read()
-    if content[-1] == '\n':
-        content = content[:-1]
-    lines = content.split("\n")
+    lines = content.strip().split("\n")
     assert len(lines) % 3 == 0
     headers = lines[0::3]
     seqs = lines[1::3]

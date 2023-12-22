@@ -97,8 +97,8 @@ def dnabert_data_generator(csv_path, max_len=None):
 
 
 # Fit model
-train_path = Path("resources/data/train_familywise_80")
-test_path = Path("resources/data/test_familywise_80")
+train_path = Path("resources/data/train_familywise_85")
+test_path = Path("resources/data/test_familywise_85")
 # train_csv_path = Path("resources/data/train.csv")
 # test_csv_path = Path("resources/data/test.csv")
 # n_train = len(os.listdir(train_path))
@@ -111,7 +111,7 @@ history = model.fit(
     validation_steps=305,
 )
 
-model.save(Path("resources/models/CNN1D_familywise_80"))
+# model.save(Path("resources/models/CNN1D_familywise_95"))
 
 import matplotlib.pyplot as plt
 
