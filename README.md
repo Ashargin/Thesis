@@ -9,7 +9,6 @@ pip install -r requirements.txt
 ## Then install the following libraries, not registered on Pypi :
 
 * [MXFold2](https://github.com/mxfold/mxfold2)
-* [IPyRSSA](https://github.com/lipan6461188/IPyRSSA)
 
 
 ## Then, you can run the script to launch predictions :
