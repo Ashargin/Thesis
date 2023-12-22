@@ -6,12 +6,12 @@ sys.path.append(os.getcwd())
 from pathlib import Path
 
 from src.predict import (
-    rnafold_predict,
+    linearfold_predict,
 )
 from src.utils import run_preds
 
 run_preds(
-    rnafold_predict,
-    Path("resources/rnafold.csv"),
+    linearfold_predict,
+    Path("resources/linearfold.csv"),
     in_filename="test_sequencewise",
 )
