@@ -81,7 +81,7 @@ def run_preds(
     compute_frac=None,
 ):
     # Read input
-    in_path = Path("resources/data_structures/{in_filename}.dbn")
+    in_path = Path(f"resources/data_structures/{in_filename}.dbn")
     with open(in_path, "r") as f:
         content = f.read()
     lines = content.strip().split("\n")
