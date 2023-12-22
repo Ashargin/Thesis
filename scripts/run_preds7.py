@@ -1,23 +1,17 @@
-from pathlib import Path
 import os
 import sys
 
 sys.path.append(os.getcwd())
 
+from pathlib import Path
+
 from src.predict import (
-    mxfold2_predict,
-    linearfold_predict,
-    ufold_predict,
-    divide_predict,
-    divide_get_cuts,
-    linearfold_get_cuts,
+    rnafold_predict,
 )
 from src.utils import run_preds
 
 run_preds(
-    divide_predict,
-    Path("resources/divide_cheat_2step_mx_preds.csv"),
-    use_structs=True,
-    kwargs={"max_steps": 2, "predict_fnc": mxfold2_predict},
-    compute_frac=0.2,
+    rnafold_predict,
+    Path("resources/rnafold.csv"),
+    in_filename="test_sequencewise",
 )
