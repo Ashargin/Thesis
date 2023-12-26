@@ -16,7 +16,7 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 # from src.utils import seq2kmer
 
 # Load model
-model = CNN1D()
+model = MLP()
 model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
@@ -97,8 +97,8 @@ def dnabert_data_generator(csv_path, max_len=None):
 
 
 # Fit model
-train_path = Path("resources/data/train_familywise_85")
-test_path = Path("resources/data/test_familywise_85")
+train_path = Path("resources/data_splits/train_familywise_80")
+test_path = Path("resources/data_splits/test_familywise_80")
 # train_csv_path = Path("resources/data/train.csv")
 # test_csv_path = Path("resources/data/test.csv")
 # n_train = len(os.listdir(train_path))
@@ -111,7 +111,7 @@ history = model.fit(
     validation_steps=305,
 )
 
-# model.save(Path("resources/models/CNN1D_familywise_95"))
+model.save(Path("resources/models/MLP_familywise_80"))
 
 import matplotlib.pyplot as plt
 
