@@ -14,4 +14,5 @@ run_preds(
     mxfold2_predict,
     Path("resources/mxfold2.csv"),
     in_filename="test_sequencewise",
+    allow_errors=True,
 )
