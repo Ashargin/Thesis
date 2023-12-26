@@ -10,9 +10,9 @@ with open(f"cdhit_clusters_{cluster_threshold}.fasta", "r") as f:
 lines = txt.strip().split("\n")
 names = [x[1:] for x in lines[::2]]
 
-# Read sequencewise split
-df_train = pd.read_csv(r"resources/data/train_sequencewise.csv", index_col=0)
-df_test = pd.read_csv(r"resources/data/test_sequencewise.csv", index_col=0)
+# Read base split
+df_train = pd.read_csv(r"resources/data/train_base.csv", index_col=0)
+df_test = pd.read_csv(r"resources/data/test_base.csv", index_col=0)
 old_train_size = round(df_train.shape[0] / (df_train.shape[0] + df_test.shape[0]), 2)
 print(f"Old train size: {old_train_size}")
 
@@ -35,7 +35,7 @@ if new_train_size >= 0.78 and new_train_size <= 0.82:
     for i in df_train.index:
         try:
             shutil.copyfile(
-                rf"resources/data/train_sequencewise/{i}.pkl",
+                rf"resources/data/train_base/{i}.pkl",
                 rf"resources/data/train_familywise_{cluster_threshold}/{i}.pkl",
             )
         except FileNotFoundError:
@@ -43,7 +43,7 @@ if new_train_size >= 0.78 and new_train_size <= 0.82:
     for i in df_test.index:
         try:
             shutil.copyfile(
-                rf"resources/data/test_sequencewise/{i}.pkl",
+                rf"resources/data/test_base/{i}.pkl",
                 rf"resources/data/test_familywise_{cluster_threshold}/{i}.pkl",
             )
         except FileNotFoundError:

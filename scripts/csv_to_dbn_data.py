@@ -1,6 +1,6 @@
 import pandas as pd
 
-filename = "train_sequencewise"
+filename = "test_sequencewise"
 
 # Read original dbn
 with open(rf"bpRNA_1m/dbnFiles/allDbn.dbn", "r") as f:
