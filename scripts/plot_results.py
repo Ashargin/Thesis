@@ -6,103 +6,106 @@ from pathlib import Path
 from src.utils import get_scores_df
 
 ## Score predictions
-# mxfold2_scores = get_scores_df(Path("resources/mxfold2_preds.csv"))
-# linearfold_scores = get_scores_df(Path("resources/linearfold_preds.csv"))
-# ufold_scores = get_scores_df(Path("resources/ufold_preds.csv"))
-# divide_cheat_200_lf_scores = get_scores_df(Path("resources/divide_cheat_200_lf_preds.csv"))
-# divide_cheat_200_mx_scores = get_scores_df(Path("resources/divide_cheat_200_mx_preds.csv"))
-# divide_cheat_400_mx_scores = get_scores_df(Path("resources/divide_cheat_400_mx_preds.csv"))
-# divide_cheat_600_mx_scores = get_scores_df(Path("resources/divide_cheat_600_mx_preds.csv"))
-# divide_cheat_800_mx_scores = get_scores_df(Path("resources/divide_cheat_800_mx_preds.csv"))
-# divide_cheat_1000_mx_scores = get_scores_df(Path("resources/divide_cheat_1000_mx_preds.csv"))
-# divide_linearfoldcuts_200_lf_scores = get_scores_df(Path("resources/divide_linearfoldcuts_200_lf_preds.csv"))
-# divide_linearfoldcuts_200_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_200_mx_preds.csv"))
-# divide_linearfoldcuts_400_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_400_mx_preds.csv"))
-# divide_linearfoldcuts_600_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_600_mx_preds.csv"))
-# divide_linearfoldcuts_800_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_800_mx_preds.csv"))
-# divide_linearfoldcuts_1000_mx_scores = get_scores_df(Path("resources/divide_linearfoldcuts_1000_mx_preds.csv"))
-# divide_motifs_200_mx_scores = get_scores_df(Path("resources/divide_motifs_200_mx_preds.csv"))
-# divide_motifs_400_mx_scores = get_scores_df(Path("resources/divide_motifs_400_mx_preds.csv"))
-# divide_motifs_600_mx_scores = get_scores_df(Path("resources/divide_motifs_600_mx_preds.csv"))
-# divide_motifs_800_mx_scores = get_scores_df(Path("resources/divide_motifs_800_mx_preds.csv"))
-# divide_motifs_1000_mx_scores = get_scores_df(Path("resources/divide_motifs_1000_mx_preds.csv"))
-# divide_motifs_1step_mx_scores = get_scores_df(Path("resources/divide_motifs_1step_mx_preds.csv"))
-# divide_motifs_2step_mx_scores = get_scores_df(Path("resources/divide_motifs_2step_mx_preds.csv"))
-# divide_motifs_3step_mx_scores = get_scores_df(Path("resources/divide_motifs_3step_mx_preds.csv"))
-# divide_motifs_4step_mx_scores = get_scores_df(Path("resources/divide_motifs_4step_mx_preds.csv"))
-# divide_motifs_5step_mx_scores = get_scores_df(Path("resources/divide_motifs_5step_mx_preds.csv"))
-#
-# mxfold2_scores['model'] = 'MXfold2'
-# linearfold_scores['model'] = 'LinearFold'
-# ufold_scores['model'] = 'UFold'
-# divide_cheat_200_lf_scores['model'] = 'Recursive strategy from true structure (until 200 nc, with LinearFold as structure prediction model)'
-# divide_cheat_200_mx_scores['model'] = 'Recursive strategy from true structure (until 200 nc)'
-# divide_cheat_400_mx_scores['model'] = 'Recursive strategy from true structure (until 400 nc)'
-# divide_cheat_600_mx_scores['model'] = 'Recursive strategy from true structure (until 600 nc)'
-# divide_cheat_800_mx_scores['model'] = 'Recursive strategy from true structure (until 800 nc)'
-# divide_cheat_1000_mx_scores['model'] = 'Recursive strategy from true structure (until 1000 nc)'
-# divide_linearfoldcuts_200_lf_scores['model'] = 'Recursive strategy from LinearFold preds (until 200 nc, with LinearFold as structure prediction model)'
-# divide_linearfoldcuts_200_mx_scores['model'] = 'Recursive strategy from LinearFold preds (until 200 nc)'
-# divide_linearfoldcuts_400_mx_scores['model'] = 'Recursive strategy from LinearFold preds (until 400 nc)'
-# divide_linearfoldcuts_600_mx_scores['model'] = 'Recursive strategy from LinearFold preds (until 600 nc)'
-# divide_linearfoldcuts_800_mx_scores['model'] = 'Recursive strategy from LinearFold preds (until 800 nc)'
-# divide_linearfoldcuts_1000_mx_scores['model'] = 'Recursive strategy from LinearFold preds (until 1000 nc)'
-# divide_motifs_200_mx_scores['model'] = 'Our approach using predicted cut points (until 200 nc)'
-# divide_motifs_400_mx_scores['model'] = 'Until 400 nc'
-# divide_motifs_600_mx_scores['model'] = 'Until 600 nc'
-# divide_motifs_800_mx_scores['model'] = 'Until 800 nc'
-# divide_motifs_1000_mx_scores['model'] = 'Until 1000 nc'
-# divide_motifs_1step_mx_scores['model'] = 'Our approach using predicted cut pointsl (limited to 1 step)'
-# divide_motifs_2step_mx_scores['model'] = 'Limited to 2 steps'
-# divide_motifs_3step_mx_scores['model'] = 'Limited to 3 steps'
-# divide_motifs_4step_mx_scores['model'] = 'Limited to 4 steps'
-# divide_motifs_5step_mx_scores['model'] = 'Limited to 5 steps'
-#
-# data = pd.concat([mxfold2_scores, linearfold_scores, ufold_scores,
-#                   divide_cheat_200_lf_scores, divide_cheat_200_mx_scores,
-#                   divide_cheat_400_mx_scores, divide_cheat_600_mx_scores,
-#                   divide_cheat_800_mx_scores, divide_cheat_1000_mx_scores,
-#                   divide_linearfoldcuts_200_lf_scores, divide_linearfoldcuts_200_mx_scores,
-#                   divide_linearfoldcuts_400_mx_scores, divide_linearfoldcuts_600_mx_scores,
-#                   divide_linearfoldcuts_800_mx_scores, divide_linearfoldcuts_1000_mx_scores,
-#                   divide_motifs_200_mx_scores, divide_motifs_400_mx_scores,
-#                   divide_motifs_600_mx_scores, divide_motifs_800_mx_scores,
-#                   divide_motifs_1000_mx_scores])
-# data.reset_index(inplace=True, drop=True)
-# data.to_csv(Path("resources/all_results.csv"))
+results_path = Path("resources/results")
+divide_cnn_80_scores = get_scores_df(
+    results_path / "divide_cnn_1000_mx_familywise_80.csv"
+)
+divide_cnn_85_scores = get_scores_df(
+    results_path / "divide_cnn_1000_mx_familywise_85.csv"
+)
+divide_cnn_90_scores = get_scores_df(
+    results_path / "divide_cnn_1000_mx_familywise_90.csv"
+)
+divide_cnn_95_scores = get_scores_df(
+    results_path / "divide_cnn_1000_mx_familywise_95.csv"
+)
+divide_cnn_scores = get_scores_df(results_path / "divide_cnn_1000_mx_sequencewise.csv")
+divide_mlp_80_scores = get_scores_df(
+    results_path / "divide_mlp_1000_mx_familywise_80.csv"
+)
+divide_mlp_85_scores = get_scores_df(
+    results_path / "divide_mlp_1000_mx_familywise_85.csv"
+)
+divide_mlp_90_scores = get_scores_df(
+    results_path / "divide_mlp_1000_mx_familywise_90.csv"
+)
+divide_mlp_95_scores = get_scores_df(
+    results_path / "divide_mlp_1000_mx_familywise_95.csv"
+)
+divide_mlp_scores = get_scores_df(results_path / "divide_mlp_1000_mx_sequencewise.csv")
+mxfold2_scores = get_scores_df(results_path / "mxfold2_sequencewise.csv")
+linearfold_scores = get_scores_df(results_path / "linearfold_sequencewise.csv")
+rnafold_scores = get_scores_df(results_path / "rnafold_sequencewise.csv")
+probknot_scores = get_scores_df(results_path / "probknot_sequencewise.csv")
+divide_cheat_scores = get_scores_df(
+    results_path / "divide_cheat_1000_mx_sequencewise.csv"
+)
 
-data = pd.read_csv(Path("resources/all_results.csv"), index_col=0)
-data = data[data.fscore.notna()]
-data = data[(data.length < 1650) | ((data.length > 2750) & (data.length < 3800))]
-rna_names_all_models = data.groupby("rna_name").model.nunique() == data.model.nunique()
-data = data[
-    (data.rna_name.isin(rna_names_all_models[rna_names_all_models].index))
-    | (data.length >= 1000)
-]
+divide_cnn_80_scores["model"] = "DivideFold CNN1D (80% max similarity)"
+divide_cnn_85_scores["model"] = "DivideFold CNN1D (85% max similarity)"
+divide_cnn_90_scores["model"] = "DivideFold CNN1D (90% max similarity)"
+divide_cnn_95_scores["model"] = "DivideFold CNN1D (95% max similarity)"
+divide_cnn_scores["model"] = "DivideFold CNN1D (sequencewise)"
+divide_mlp_80_scores["model"] = "DivideFold MLP (80% max similarity)"
+divide_mlp_85_scores["model"] = "DivideFold MLP (85% max similarity)"
+divide_mlp_90_scores["model"] = "DivideFold MLP (90% max similarity)"
+divide_mlp_95_scores["model"] = "DivideFold MLP (95% max similarity)"
+divide_mlp_scores["model"] = "DivideFold MLP (sequencewise)"
+mxfold2_scores["model"] = "MXfold2"
+linearfold_scores["model"] = "LinearFold"
+rnafold_scores["model"] = "RNAfold"
+probknot_scores["model"] = "ProbKnot"
+divide_cheat_scores["model"] = "DivideFold Oracle"
 
-data_200 = data[
-    (data.model.str.contains("200"))
-    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
-]
-data_400 = data[
-    (data.model.str.contains("400"))
-    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
-]
-data_600 = data[
-    (data.model.str.contains("600"))
-    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
-]
-data_800 = data[
-    (data.model.str.contains("800"))
-    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
-]
-data_1000 = data[
-    (data.model.str.contains("1000"))
-    | (data.model.isin(["MXfold2", "LinearFold", "UFold"]))
-]
-data_true = data[data.model.str.contains("true")]
-data_linearfoldcuts = data[data.model.str.contains("LinearFold preds")]
-data_motifs = data[data.model.str.contains("Our approach")]
+data_sequencewise = pd.concat(
+    [
+        divide_cnn_scores,
+        divide_mlp_scores,
+        mxfold2_scores,
+        linearfold_scores,
+        rnafold_scores,
+        probknot_scores,
+        divide_cheat_scores,
+    ]
+).reset_index(drop=True)
+data_sequencewise.model = data_sequencewise.model.apply(
+    lambda x: x.replace(" (sequencewise)", "")
+)
+data_familywise = pd.concat(
+    [
+        divide_cnn_80_scores,
+        divide_cnn_85_scores,
+        divide_cnn_90_scores,
+        divide_cnn_95_scores,
+        divide_cnn_scores,
+        divide_mlp_80_scores,
+        divide_mlp_85_scores,
+        divide_mlp_90_scores,
+        divide_mlp_95_scores,
+        divide_mlp_scores,
+    ]
+).reset_index(drop=True)
+data_familywise_mlp = data_familywise[data_familywise.model.str.contains("MLP")]
+data_familywise_cnn = data_familywise[data_familywise.model.str.contains("CNN1D")]
+
+
+def clean_data(data):
+    data = data.copy()
+    data = data[data.fscore.notna()]
+    data = data[
+        (data.length < 1650) | ((data.length > 2750))
+    ]  # & (data.length < 3800))]
+    rna_names_all_models = (
+        data.groupby("rna_name").model.nunique() == data.model.nunique()
+    )
+    data = data[
+        (data.rna_name.isin(rna_names_all_models[rna_names_all_models].index))
+        | (data.length >= 1000)
+    ]
+    return data
+
+
+data = clean_data(data_sequencewise)
 
 ## Plot scores
 def round_lengths(df, n1=200, n2=400):
@@ -124,15 +127,39 @@ sns.lineplot(
         "tab:green",
         "firebrick",
         "orangered",
-        "orange",
         "gold",
-        "lightgoldenrodyellow",
+        "tab:blue",
+        "tab:purple",
+        "tab:orange",
     ],
 )
 plt.xlabel("Sequence length")
 plt.ylabel("F-score")
 plt.title("F-score vs sequence length")
-plt.ylim([0.25, 0.85])
+plt.ylim([0.0, 0.85])
+plt.show()
+
+plt.figure()
+sns.lineplot(
+    data=round_lengths(data),
+    x="length",
+    y="mcc",
+    hue="model",
+    estimator="mean",
+    palette=[
+        "tab:green",
+        "firebrick",
+        "orangered",
+        "gold",
+        "tab:blue",
+        "tab:purple",
+        "tab:orange",
+    ],
+)
+plt.xlabel("Sequence length")
+plt.ylabel("MCC")
+plt.title("MCC vs sequence length")
+plt.ylim([-0.2, 0.5])
 plt.show()
 
 ## Plot time and memory constraints
@@ -143,11 +170,21 @@ sns.lineplot(
     y="time",
     hue="model",
     estimator="mean",
-    palette=["tab:blue", "tab:orange", "tab:olive", "firebrick"],
+    palette=[
+        "tab:green",
+        "firebrick",
+        "orangered",
+        "gold",
+        "tab:blue",
+        "tab:purple",
+        "tab:orange",
+    ],
 )
 plt.xlabel("Sequence length")
 plt.ylabel("Time (s)")
 plt.title("Computation time vs sequence length")
+plt.xlim([0, 1600])
+plt.ylim([0, 50])
 plt.show()
 
 plt.figure()
@@ -157,9 +194,20 @@ sns.lineplot(
     y="memory",
     hue="model",
     estimator="mean",
-    palette=["tab:blue", "tab:orange", "tab:olive", "firebrick"],
+    palette=[
+        "tab:green",
+        "firebrick",
+        "orangered",
+        "gold",
+        "tab:blue",
+        "tab:purple",
+        "tab:orange",
+    ],
 )
 plt.xlabel("Sequence length")
 plt.ylabel("Memory cost / total memory")
 plt.title("Memory cost vs sequence length")
 plt.show()
+
+# TODO: nans or 0. for fscore and mcc ?
+# TODO: definition of tp fp tn fn ?

@@ -171,6 +171,7 @@ def get_scores_df(df_preds):
     ppv = []
     sen = []
     fscore = []
+    mcc = []
     for i, (y, y_hat) in enumerate(zip(df_preds.struct, df_preds.pred)):
         # Remove pseudoknots
         y = re.sub("[^\(\)\.]", ".", y)
@@ -185,6 +186,7 @@ def get_scores_df(df_preds):
 
         tp = np.sum((y_pairs == y_hat_pairs) & (y_hat_pairs != 0))
         fp = np.sum((y_pairs != y_hat_pairs) & (y_hat_pairs != 0))
+        tn = np.sum((y_pairs == y_hat_pairs) & (y_hat_pairs == 0))
         fn = np.sum((y_pairs != y_hat_pairs) & (y_hat_pairs == 0))
 
         this_ppv = tp / (tp + fp) if (tp + fp) > 0 else np.nan
@@ -194,9 +196,19 @@ def get_scores_df(df_preds):
             if (this_ppv + this_sen) > 0
             else np.nan
         )
+        this_mcc = (
+            (tp * tn - fp * fn)
+            / np.sqrt(tp + fp)
+            / np.sqrt(tp + fn)
+            / np.sqrt(tn + fp)
+            / np.sqrt(tn + fn)
+            if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
+            else np.nan
+        )
         ppv.append(this_ppv)
         sen.append(this_sen)
         fscore.append(this_fscore)
+        mcc.append(this_mcc)
 
     # Create dataframe
     skipped = np.array(["?" in p for p in df_preds.pred])
@@ -210,6 +222,7 @@ def get_scores_df(df_preds):
             "ppv": ppv,
             "sen": sen,
             "fscore": fscore,
+            "mcc": mcc,
             "time": df_preds.ttot,
             "memory": df_preds.memory,
         }
