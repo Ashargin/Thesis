@@ -15,7 +15,4 @@ module purge
 # Chargement des modules
 module load pytorch-gpu/py3/1.6.0
 
-export PATH=$PATH:$WORK/RNAstructure/exe
-export DATAPATH=$WORK/RNAstructure/data_tables
-
 python -u scripts/run_preds9.py

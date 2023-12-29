@@ -1,26 +1,35 @@
-from pathlib import Path
 import os
 import sys
 
 sys.path.append(os.getcwd())
 
+from pathlib import Path
+from tensorflow import keras
+
 from src.predict import (
-    mxfold2_predict,
-    linearfold_predict,
-    ufold_predict,
     divide_predict,
-    divide_get_cuts,
-    linearfold_get_cuts,
+    rnafold_predict,
 )
+from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
+
+model = keras.models.load_model(
+    Path("resources/models/CNN1D_familywise_90"), compile=False
+)
+model.compile(
+    optimizer="adam",
+    loss=inv_exp_distance_to_cut_loss,
+    metrics=["accuracy"],
+    run_eagerly=True,
+)
 
 run_preds(
     divide_predict,
-    Path("resources/divide_linearfoldcuts_5step_mx_preds.csv"),
+    Path("resources/divide_cnn_1000_rnaf_familywise_90.csv"),
+    in_filename="test_familywise_90",
     kwargs={
-        "max_steps": 5,
-        "cut_fnc": linearfold_get_cuts,
-        "predict_fnc": mxfold2_predict,
+        "max_length": 1000,
+        "cut_model": model,  # with motifs input format
+        "predict_fnc": rnafold_predict,
     },
-    compute_frac=0.2,
 )
