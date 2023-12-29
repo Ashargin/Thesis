@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import re
+import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
@@ -184,17 +185,22 @@ def get_scores_df(df_preds):
         y_pairs = struct_to_pairs(y)
         y_hat_pairs = struct_to_pairs(y_hat)
 
-        tp = np.sum((y_pairs == y_hat_pairs) & (y_hat_pairs != 0))
-        fp = np.sum((y_pairs != y_hat_pairs) & (y_hat_pairs != 0))
-        tn = np.sum((y_pairs == y_hat_pairs) & (y_hat_pairs == 0))
-        fn = np.sum((y_pairs != y_hat_pairs) & (y_hat_pairs == 0))
+        # MXfold2 format
+        # https://github.com/mxfold/mxfold2/blob/51b213676708bebd664f0c40873a46e09353e1ee/mxfold2/compbpseq.py#L32
+        L = len(y)
+        ref = {(i + 1, j) for i, j in enumerate(y_pairs) if i + 1 < j}
+        pred = {(i + 1, j) for i, j in enumerate(y_hat_pairs) if i + 1 < j}
+        tp = len(ref & pred)
+        fp = len(pred - ref)
+        fn = len(ref - pred)
+        tn = L * (L - 1) // 2 - tp - fp - fn
 
-        this_ppv = tp / (tp + fp) if (tp + fp) > 0 else np.nan
-        this_sen = tp / (tp + fn) if (tp + fn) > 0 else np.nan
+        this_ppv = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        this_sen = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         this_fscore = (
             2 * this_sen * this_ppv / (this_sen + this_ppv)
             if (this_ppv + this_sen) > 0
-            else np.nan
+            else 0.0
         )
         this_mcc = (
             (tp * tn - fp * fn)
@@ -203,7 +209,7 @@ def get_scores_df(df_preds):
             / np.sqrt(tn + fp)
             / np.sqrt(tn + fn)
             if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
-            else np.nan
+            else 0.0
         )
         ppv.append(this_ppv)
         sen.append(this_sen)
@@ -245,6 +251,7 @@ def get_scores_df(df_preds):
 
     data["weight"] = data.length.apply(inverse_density)
     data.weight /= data.weight.mean()
+    plt.close()
 
     return data
 

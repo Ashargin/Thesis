@@ -398,7 +398,7 @@ def linearfold_get_cuts(seq):
 
 def divide_predict(
     seq,
-    max_length=200,
+    max_length=1000,
     max_steps=None,
     cut_model=default_model,
     predict_fnc=mxfold2_predict,

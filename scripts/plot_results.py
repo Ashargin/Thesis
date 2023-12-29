@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
@@ -105,109 +106,142 @@ def clean_data(data):
     return data
 
 
-data = clean_data(data_sequencewise)
+# ## Plot scores
+# def round_lengths(df, n1=200, n2=400):
+#     df = df.copy()
+#     df.length = df.length.apply(
+#         lambda x: round(x / n1) * n1 if x < 1000 else round(x / n2) * n2
+#     )
+#     return df
+#
+#
+# plt.figure()
+# sns.lineplot(
+#     data=round_lengths(data),
+#     x="length",
+#     y="fscore",
+#     hue="model",
+#     estimator="mean",
+#     palette=[
+#         "tab:green",
+#         "firebrick",
+#         "orangered",
+#         "gold",
+#         "tab:blue",
+#         "tab:purple",
+#         "tab:orange",
+#     ],
+# )
+# plt.xlabel("Sequence length")
+# plt.ylabel("F-score")
+# plt.title("F-score vs sequence length")
+# plt.ylim([0.0, 0.85])
+# plt.show()
+#
+# plt.figure()
+# sns.lineplot(
+#     data=round_lengths(data),
+#     x="length",
+#     y="mcc",
+#     hue="model",
+#     estimator="mean",
+#     palette=[
+#         "tab:green",
+#         "firebrick",
+#         "orangered",
+#         "gold",
+#         "tab:blue",
+#         "tab:purple",
+#         "tab:orange",
+#     ],
+# )
+# plt.xlabel("Sequence length")
+# plt.ylabel("MCC")
+# plt.title("MCC vs sequence length")
+# plt.ylim([0., 0.8])
+# plt.show()
+#
+# ## Plot time and memory constraints
+# plt.figure()
+# sns.lineplot(
+#     data=round_lengths(data, n1=50, n2=50),
+#     x="length",
+#     y="time",
+#     hue="model",
+#     estimator="mean",
+#     palette=[
+#         "tab:green",
+#         "firebrick",
+#         "orangered",
+#         "gold",
+#         "tab:blue",
+#         "tab:purple",
+#         "tab:orange",
+#     ],
+# )
+# plt.xlabel("Sequence length")
+# plt.ylabel("Time (s)")
+# plt.title("Computation time vs sequence length")
+# plt.xlim([0, 1600])
+# plt.ylim([0, 50])
+# plt.show()
+#
+# plt.figure()
+# sns.lineplot(
+#     data=round_lengths(data, n1=50, n2=50),
+#     x="length",
+#     y="memory",
+#     hue="model",
+#     estimator="mean",
+#     palette=[
+#         "tab:green",
+#         "firebrick",
+#         "orangered",
+#         "gold",
+#         "tab:blue",
+#         "tab:purple",
+#         "tab:orange",
+#     ],
+# )
+# plt.xlabel("Sequence length")
+# plt.ylabel("Memory cost / total memory")
+# plt.title("Memory cost vs sequence length")
+# plt.show()
 
-## Plot scores
-def round_lengths(df, n1=200, n2=400):
-    df = df.copy()
-    df.length = df.length.apply(
-        lambda x: round(x / n1) * n1 if x < 1000 else round(x / n2) * n2
+
+def plot(data, yvar):
+    data = data.copy()
+    bins = np.array(
+        [200, 400, 600, 800, 1000, 1200, 1400, 1700, 2700, 3000, 3400, 3800, 4300]
     )
-    return df
+    data["bin"] = data.length.apply(
+        lambda x: len(bins) - np.argmax(x >= bins[::-1]) - 1
+    )
+    plt.figure()
+    ax = sns.boxplot(data, x="bin", y=yvar, hue="model")
+    xtickslabels = [
+        f"{str(a)}-{str(b-1)} nc.\n{data[data.bin == i].shape[0]} RNAs"
+        for i, (a, b) in enumerate(zip(bins[:-1], bins[1:]))
+    ]
+    print(xtickslabels)
+    ax.set_xticklabels(xtickslabels)
+    print(ax.get_xticklabels())
+    ax.set_xlabel("Length")
+    ax.set_ylabel(yvar.capitalize())
+    ax.set_title(f"{yvar.capitalize()} vs sequence length")
 
 
-plt.figure()
-sns.lineplot(
-    data=round_lengths(data),
-    x="length",
-    y="fscore",
-    hue="model",
-    estimator="mean",
-    palette=[
-        "tab:green",
-        "firebrick",
-        "orangered",
-        "gold",
-        "tab:blue",
-        "tab:purple",
-        "tab:orange",
-    ],
-)
-plt.xlabel("Sequence length")
-plt.ylabel("F-score")
-plt.title("F-score vs sequence length")
-plt.ylim([0.0, 0.85])
-plt.show()
+def plot_all(data):
+    plot(data, "fscore")
+    plot(data, "mcc")
+    plot(data, "time")
+    plot(data, "memory")
+    plt.show()
 
-plt.figure()
-sns.lineplot(
-    data=round_lengths(data),
-    x="length",
-    y="mcc",
-    hue="model",
-    estimator="mean",
-    palette=[
-        "tab:green",
-        "firebrick",
-        "orangered",
-        "gold",
-        "tab:blue",
-        "tab:purple",
-        "tab:orange",
-    ],
-)
-plt.xlabel("Sequence length")
-plt.ylabel("MCC")
-plt.title("MCC vs sequence length")
-plt.ylim([-0.2, 0.5])
-plt.show()
 
-## Plot time and memory constraints
-plt.figure()
-sns.lineplot(
-    data=round_lengths(data, n1=50, n2=50),
-    x="length",
-    y="time",
-    hue="model",
-    estimator="mean",
-    palette=[
-        "tab:green",
-        "firebrick",
-        "orangered",
-        "gold",
-        "tab:blue",
-        "tab:purple",
-        "tab:orange",
-    ],
-)
-plt.xlabel("Sequence length")
-plt.ylabel("Time (s)")
-plt.title("Computation time vs sequence length")
-plt.xlim([0, 1600])
-plt.ylim([0, 50])
-plt.show()
-
-plt.figure()
-sns.lineplot(
-    data=round_lengths(data, n1=50, n2=50),
-    x="length",
-    y="memory",
-    hue="model",
-    estimator="mean",
-    palette=[
-        "tab:green",
-        "firebrick",
-        "orangered",
-        "gold",
-        "tab:blue",
-        "tab:purple",
-        "tab:orange",
-    ],
-)
-plt.xlabel("Sequence length")
-plt.ylabel("Memory cost / total memory")
-plt.title("Memory cost vs sequence length")
-plt.show()
+plot_all(clean_data(data_sequencewise))
+# plot_all(clean_data(data_familywise_mlp))
+# plot_all(clean_data(data_familywise_cnn))
 
 # TODO: nans or 0. for fscore and mcc ?
 # TODO: definition of tp fp tn fn ?
