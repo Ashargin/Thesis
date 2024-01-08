@@ -14,6 +14,8 @@ module purge
 
 # Chargement des modules
 module load pytorch-gpu/py3/1.6.0
-module load viennarna/2.5.0
+
+export PATH=$PATH:$WORK/RNAstructure/exe
+export DATAPATH=$WORK/RNAstructure/data_tables
 
 python -u scripts/run_preds13.py

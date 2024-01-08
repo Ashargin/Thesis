@@ -25,8 +25,8 @@ model.compile(
 
 run_preds(
     divide_predict,
-    Path("resources/divide_mlp_1000_lf_sequencewise.csv"),
-    in_filename="test_sequencewise",
+    Path("resources/divide_mlp_1000_lf_16S.csv"),
+    in_filename="16S",
     kwargs={
         "max_length": 1000,
         "cut_model": model,  # with motifs input format
