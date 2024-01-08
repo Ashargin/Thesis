@@ -14,7 +14,7 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
 model = keras.models.load_model(
-    Path("resources/models/CNN_sequencewise"), compile=False
+    Path("resources/models/CNN1D_sequencewise"), compile=False
 )
 model.compile(
     optimizer="adam",
