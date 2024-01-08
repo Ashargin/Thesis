@@ -13,5 +13,5 @@ from src.utils import run_preds
 run_preds(
     mxfold2_predict,
     Path("resources/mxfold2_16S.csv"),
-    in_filename="16S",
+    in_filename="16S23S",
 )

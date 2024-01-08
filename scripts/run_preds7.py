@@ -14,7 +14,7 @@ from src.utils import run_preds
 run_preds(
     divide_predict,
     Path("resources/divide_oracle_1000_mx_16S.csv"),
-    in_filename="16S",
+    in_filename="16S23S",
     use_structs=True,  # Oracle
     kwargs={
         "max_length": 1000,
