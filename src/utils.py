@@ -199,7 +199,7 @@ def get_scores(y, y_hat):
     return this_ppv, this_sen, this_fscore, this_mcc
 
 
-def get_scores_df(df_preds):
+def get_scores_df(df_preds, name=""):
     # Read data
     if not isinstance(
         df_preds, pd.core.frame.DataFrame
@@ -213,7 +213,7 @@ def get_scores_df(df_preds):
     fscore = []
     mcc = []
     for i, (y, y_hat) in enumerate(zip(df_preds.struct, df_preds.pred)):
-        if i % int(n / 10) == 0:
+        if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
         this_ppv, this_sen, this_fscore, this_mcc = get_scores(y, y_hat)
         ppv.append(this_ppv)
@@ -236,6 +236,7 @@ def get_scores_df(df_preds):
             "mcc": mcc,
             "time": df_preds.ttot,
             "memory": df_preds.memory,
+            "model": name,
         }
     )
 
@@ -243,6 +244,8 @@ def get_scores_df(df_preds):
     data.memory = data.memory.astype(float)
     data = data.iloc[~skipped, :]
 
+    if n < 10:
+        return data
     ax = sns.kdeplot(data=data, x="length")
     x, y = ax.get_lines()[-1].get_data()
 
