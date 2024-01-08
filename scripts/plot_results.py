@@ -8,65 +8,99 @@ from src.utils import get_scores_df
 
 ## Score predictions
 results_path = Path("resources/results")
-divide_cnn_80_scores = get_scores_df(
+divide_cnn_mx_80_scores = get_scores_df(
     results_path / "divide_cnn_1000_mx_familywise_80.csv"
 )
-divide_cnn_85_scores = get_scores_df(
+divide_cnn_mx_85_scores = get_scores_df(
     results_path / "divide_cnn_1000_mx_familywise_85.csv"
 )
-divide_cnn_90_scores = get_scores_df(
+divide_cnn_mx_90_scores = get_scores_df(
     results_path / "divide_cnn_1000_mx_familywise_90.csv"
 )
-divide_cnn_95_scores = get_scores_df(
+divide_cnn_mx_95_scores = get_scores_df(
     results_path / "divide_cnn_1000_mx_familywise_95.csv"
 )
-divide_cnn_scores = get_scores_df(results_path / "divide_cnn_1000_mx_sequencewise.csv")
-divide_mlp_80_scores = get_scores_df(
+divide_cnn_mx_scores = get_scores_df(
+    results_path / "divide_cnn_1000_mx_sequencewise.csv"
+)
+divide_mlp_mx_80_scores = get_scores_df(
     results_path / "divide_mlp_1000_mx_familywise_80.csv"
 )
-divide_mlp_85_scores = get_scores_df(
+divide_mlp_mx_85_scores = get_scores_df(
     results_path / "divide_mlp_1000_mx_familywise_85.csv"
 )
-divide_mlp_90_scores = get_scores_df(
+divide_mlp_mx_90_scores = get_scores_df(
     results_path / "divide_mlp_1000_mx_familywise_90.csv"
 )
-divide_mlp_95_scores = get_scores_df(
+divide_mlp_mx_95_scores = get_scores_df(
     results_path / "divide_mlp_1000_mx_familywise_95.csv"
 )
-divide_mlp_scores = get_scores_df(results_path / "divide_mlp_1000_mx_sequencewise.csv")
+divide_mlp_mx_scores = get_scores_df(
+    results_path / "divide_mlp_1000_mx_sequencewise.csv"
+)
 mxfold2_scores = get_scores_df(results_path / "mxfold2_sequencewise.csv")
 linearfold_scores = get_scores_df(results_path / "linearfold_sequencewise.csv")
 rnafold_scores = get_scores_df(results_path / "rnafold_sequencewise.csv")
 probknot_scores = get_scores_df(results_path / "probknot_sequencewise.csv")
-divide_cheat_scores = get_scores_df(
-    results_path / "divide_cheat_1000_mx_sequencewise.csv"
+divide_oracle_mx_scores = get_scores_df(
+    results_path / "divide_oracle_1000_mx_sequencewise.csv"
+)
+divide_cnn_lf_scores = get_scores_df(
+    results_path / "divide_cnn_1000_lf_sequencewise.csv"
+)
+divide_cnn_rnaf_scores = get_scores_df(
+    results_path / "divide_cnn_1000_rnaf_sequencewise.csv"
+)
+divide_mlp_lf_scores = get_scores_df(
+    results_path / "divide_mlp_1000_lf_sequencewise.csv"
+)
+divide_mlp_rnaf_scores = get_scores_df(
+    results_path / "divide_mlp_1000_rnaf_sequencewise.csv"
+)
+divide_oracle_lf_scores = get_scores_df(
+    results_path / "divide_oracle_1000_lf_sequencewise.csv"
+)
+divide_oracle_rnaf_scores = get_scores_df(
+    results_path / "divide_oracle_1000_rnaf_sequencewise.csv"
 )
 
-divide_cnn_80_scores["model"] = "DivideFold CNN1D (80% max similarity)"
-divide_cnn_85_scores["model"] = "DivideFold CNN1D (85% max similarity)"
-divide_cnn_90_scores["model"] = "DivideFold CNN1D (90% max similarity)"
-divide_cnn_95_scores["model"] = "DivideFold CNN1D (95% max similarity)"
-divide_cnn_scores["model"] = "DivideFold CNN1D (sequencewise)"
-divide_mlp_80_scores["model"] = "DivideFold MLP (80% max similarity)"
-divide_mlp_85_scores["model"] = "DivideFold MLP (85% max similarity)"
-divide_mlp_90_scores["model"] = "DivideFold MLP (90% max similarity)"
-divide_mlp_95_scores["model"] = "DivideFold MLP (95% max similarity)"
-divide_mlp_scores["model"] = "DivideFold MLP (sequencewise)"
+divide_cnn_mx_80_scores["model"] = "DivideFold CNN1D+MX (80% max similarity)"
+divide_cnn_mx_85_scores["model"] = "DivideFold CNN1D+MX (85% max similarity)"
+divide_cnn_mx_90_scores["model"] = "DivideFold CNN1D+MX (90% max similarity)"
+divide_cnn_mx_95_scores["model"] = "DivideFold CNN1D+MX (95% max similarity)"
+divide_cnn_mx_scores["model"] = "DivideFold CNN1D+MX (sequencewise)"
+divide_mlp_mx_80_scores["model"] = "DivideFold MLP+MX (80% max similarity)"
+divide_mlp_mx_85_scores["model"] = "DivideFold MLP+MX (85% max similarity)"
+divide_mlp_mx_90_scores["model"] = "DivideFold MLP+MX (90% max similarity)"
+divide_mlp_mx_95_scores["model"] = "DivideFold MLP+MX (95% max similarity)"
+divide_mlp_mx_scores["model"] = "DivideFold MLP+MX (sequencewise)"
 mxfold2_scores["model"] = "MXfold2"
 linearfold_scores["model"] = "LinearFold"
 rnafold_scores["model"] = "RNAfold"
 probknot_scores["model"] = "ProbKnot"
-divide_cheat_scores["model"] = "DivideFold Oracle"
+divide_oracle_mx_scores["model"] = "DivideFold Oracle+MX"
+divide_cnn_lf_scores["model"] = "DivideFold CNN1D+LF (sequencewise)"
+divide_cnn_rnaf_scores["model"] = "DivideFold CNN1D+RNAF (sequencewise)"
+divide_mlp_lf_scores["model"] = "DivideFold MLP+LF (sequencewise)"
+divide_mlp_rnaf_scores["model"] = "DivideFold MLP+RNAF (sequencewise)"
+divide_oracle_lf_scores["model"] = "DivideFold Oracle+LF"
+divide_oracle_rnaf_scores["model"] = "DivideFold Oracle+RNAF"
 
 data_sequencewise = pd.concat(
     [
-        divide_cnn_scores,
-        divide_mlp_scores,
+        # divide_oracle_mx_scores,
+        # divide_oracle_lf_scores,
+        # divide_oracle_rnaf_scores,
+        # divide_cnn_mx_scores,
+        # divide_cnn_lf_scores,
+        # divide_cnn_rnaf_scores,
+        # divide_mlp_mx_scores,
+        # divide_mlp_lf_scores,
+        # divide_mlp_rnaf_scores,
         mxfold2_scores,
         linearfold_scores,
         rnafold_scores,
-        probknot_scores,
-        divide_cheat_scores,
+        # probknot_scores,
     ]
 ).reset_index(drop=True)
 data_sequencewise.model = data_sequencewise.model.apply(
@@ -74,16 +108,16 @@ data_sequencewise.model = data_sequencewise.model.apply(
 )
 data_familywise = pd.concat(
     [
-        divide_cnn_80_scores,
-        divide_cnn_85_scores,
-        divide_cnn_90_scores,
-        divide_cnn_95_scores,
-        divide_cnn_scores,
-        divide_mlp_80_scores,
-        divide_mlp_85_scores,
-        divide_mlp_90_scores,
-        divide_mlp_95_scores,
-        divide_mlp_scores,
+        divide_cnn_mx_80_scores,
+        divide_cnn_mx_85_scores,
+        divide_cnn_mx_90_scores,
+        divide_cnn_mx_95_scores,
+        divide_cnn_mx_scores,
+        divide_mlp_mx_80_scores,
+        divide_mlp_mx_85_scores,
+        divide_mlp_mx_90_scores,
+        divide_mlp_mx_95_scores,
+        divide_mlp_mx_scores,
     ]
 ).reset_index(drop=True)
 data_familywise_mlp = data_familywise[data_familywise.model.str.contains("MLP")]
@@ -96,13 +130,8 @@ def clean_data(data):
     data = data[
         (data.length < 1650) | ((data.length > 2750))
     ]  # & (data.length < 3800))]
-    rna_names_all_models = (
-        data.groupby("rna_name").model.nunique() == data.model.nunique()
-    )
-    data = data[
-        (data.rna_name.isin(rna_names_all_models[rna_names_all_models].index))
-        | (data.length >= 1000)
-    ]
+    seqs_all_models = data.groupby("seq").model.nunique() == data.model.nunique()
+    data = data[(data.seq.isin(seqs_all_models[seqs_all_models].index))]
     return data
 
 
@@ -242,6 +271,3 @@ def plot_all(data):
 plot_all(clean_data(data_sequencewise))
 # plot_all(clean_data(data_familywise_mlp))
 # plot_all(clean_data(data_familywise_cnn))
-
-# TODO: nans or 0. for fscore and mcc ?
-# TODO: definition of tp fp tn fn ?

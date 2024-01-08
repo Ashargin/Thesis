@@ -160,6 +160,45 @@ def run_preds(
                 f_out.write(line)
 
 
+def get_scores(y, y_hat):
+    # Remove pseudoknots
+    y = re.sub("[^\(\)\.]", ".", y)
+    y_hat = re.sub("[^\(\)\.]", ".", y_hat)
+
+    assert len(y) == len(y_hat)
+    y_pairs = struct_to_pairs(y)
+    y_hat_pairs = struct_to_pairs(y_hat)
+
+    # MXfold2 format
+    # https://github.com/mxfold/mxfold2/blob/51b213676708bebd664f0c40873a46e09353e1ee/mxfold2/compbpseq.py#L32
+    L = len(y)
+    ref = {(i + 1, j) for i, j in enumerate(y_pairs) if i + 1 < j}
+    pred = {(i + 1, j) for i, j in enumerate(y_hat_pairs) if i + 1 < j}
+    tp = len(ref & pred)
+    fp = len(pred - ref)
+    fn = len(ref - pred)
+    tn = L * (L - 1) // 2 - tp - fp - fn
+
+    this_ppv = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    this_sen = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    this_fscore = (
+        2 * this_sen * this_ppv / (this_sen + this_ppv)
+        if (this_ppv + this_sen) > 0
+        else 0.0
+    )
+    this_mcc = (
+        (tp * tn - fp * fn)
+        / np.sqrt(tp + fp)
+        / np.sqrt(tp + fn)
+        / np.sqrt(tn + fp)
+        / np.sqrt(tn + fn)
+        if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
+        else 0.0
+    )
+
+    return this_ppv, this_sen, this_fscore, this_mcc
+
+
 def get_scores_df(df_preds):
     # Read data
     if not isinstance(
@@ -174,43 +213,9 @@ def get_scores_df(df_preds):
     fscore = []
     mcc = []
     for i, (y, y_hat) in enumerate(zip(df_preds.struct, df_preds.pred)):
-        # Remove pseudoknots
-        y = re.sub("[^\(\)\.]", ".", y)
-        y_hat = re.sub("[^\(\)\.]", ".", y_hat)
-
         if i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
-
-        assert len(y) == len(y_hat)
-        y_pairs = struct_to_pairs(y)
-        y_hat_pairs = struct_to_pairs(y_hat)
-
-        # MXfold2 format
-        # https://github.com/mxfold/mxfold2/blob/51b213676708bebd664f0c40873a46e09353e1ee/mxfold2/compbpseq.py#L32
-        L = len(y)
-        ref = {(i + 1, j) for i, j in enumerate(y_pairs) if i + 1 < j}
-        pred = {(i + 1, j) for i, j in enumerate(y_hat_pairs) if i + 1 < j}
-        tp = len(ref & pred)
-        fp = len(pred - ref)
-        fn = len(ref - pred)
-        tn = L * (L - 1) // 2 - tp - fp - fn
-
-        this_ppv = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        this_sen = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        this_fscore = (
-            2 * this_sen * this_ppv / (this_sen + this_ppv)
-            if (this_ppv + this_sen) > 0
-            else 0.0
-        )
-        this_mcc = (
-            (tp * tn - fp * fn)
-            / np.sqrt(tp + fp)
-            / np.sqrt(tp + fn)
-            / np.sqrt(tn + fp)
-            / np.sqrt(tn + fn)
-            if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
-            else 0.0
-        )
+        this_ppv, this_sen, this_fscore, this_mcc = get_scores(y, y_hat)
         ppv.append(this_ppv)
         sen.append(this_sen)
         fscore.append(this_fscore)
