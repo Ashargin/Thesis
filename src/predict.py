@@ -8,6 +8,7 @@ import re
 import numpy as np
 from scipy import signal
 import pickle
+import itertools
 
 import torch
 from torch.utils.data import DataLoader
@@ -25,7 +26,7 @@ import mxfold2
 from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
 
-from src.utils import format_data
+from src.utils import format_data, eval_energy
 from src.models.loss import inv_exp_distance_to_cut_loss
 
 default_model = keras.models.load_model(
@@ -251,7 +252,10 @@ def rnasubopt_predict(seq, kmax=5):
     tstart = time.time()
     output = os.popen(f"echo {seq} | RNAsubopt --sorted").read()
     lines = output.strip().split("\n")[1 : kmax + 1]
-    pred = [(pred, float(energy)) for pred, energy in [l.split(" ") for l in lines]]
+    pred = [
+        (pred, float(energy))
+        for pred, energy in [[x for x in l.split(" ") if x] for l in lines]
+    ]
     ttot = time.time() - tstart
 
     return pred, None, None, ttot, 0.0
@@ -400,7 +404,7 @@ def linearfold_get_cuts(seq):
     return oracle_get_cuts(preds)
 
 
-def divide_predict(
+def divide_get_fragment_ranges_preds(
     seq,
     max_length=1000,
     max_steps=None,
@@ -413,9 +417,13 @@ def divide_predict(
     tstart = time.time()
 
     if len(seq) <= max_length or max_steps == 0:
-        if cuts_path is not None:
-            return "." * len(seq), None, None, 0.0, 0.0
-        return predict_fnc(seq)
+        pred, a, b, ttot, memory = (
+            predict_fnc(seq)
+            if cuts_path is None
+            else ("." * len(seq), None, None, 0.0, 0.0)
+        )
+        frag_preds = [(np.array([[0, len(seq) - 1]]), pred)]
+        return frag_preds, a, b, ttot, memory
 
     if struct:
         cuts, outer = oracle_get_cuts(struct)
@@ -445,8 +453,7 @@ def divide_predict(
         inner_bounds = inner_bounds[1:-1]
 
     # Predict subsequences
-    preds = []
-    outer_preds = []
+    frag_preds = []
     memories = []
     max_steps = max_steps - 1 if max_steps is not None else None
     for left_b, right_b in inner_bounds:
@@ -455,7 +462,7 @@ def divide_predict(
         if struct:
             substruct = struct[left_b:right_b]
             assert substruct.count("(") == substruct.count(")")
-            pred, _, _, _, memory = divide_predict(
+            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
@@ -466,7 +473,7 @@ def divide_predict(
                 rna_name=rna_name,
             )
         else:
-            pred, _, _, _, memory = divide_predict(
+            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
@@ -476,20 +483,23 @@ def divide_predict(
                 rna_name=rna_name,
             )
 
-        preds.append(pred)
+        for _range, pred in this_frag_preds:
+            frag_preds.append((_range + left_b, pred))
         memories.append(memory)
 
     if outer_bounds:
-        left_subseq = seq[outer_bounds[0][0] : outer_bounds[0][1]]
-        right_subseq = seq[outer_bounds[1][0] : outer_bounds[1][1]]
+        left_b_1, right_b_1 = outer_bounds[0]
+        left_b_2, right_b_2 = outer_bounds[1]
+        left_subseq = seq[left_b_1:right_b_1]
+        right_subseq = seq[left_b_2:right_b_2]
         subseq = left_subseq + right_subseq
 
         if struct:
-            left_substruct = struct[outer_bounds[0][0] : outer_bounds[0][1]]
-            right_substruct = struct[outer_bounds[1][0] : outer_bounds[1][1]]
+            left_substruct = struct[left_b_1:right_b_1]
+            right_substruct = struct[left_b_2:right_b_2]
             substruct = left_substruct + right_substruct
             assert substruct.count("(") == substruct.count(")")
-            pred, _, _, _, memory = divide_predict(
+            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
@@ -500,7 +510,7 @@ def divide_predict(
                 rna_name=rna_name,
             )
         else:
-            pred, _, _, _, memory = divide_predict(
+            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
@@ -510,15 +520,130 @@ def divide_predict(
                 rna_name=rna_name,
             )
 
-        left_pred, right_pred = pred[: len(left_subseq)], pred[len(left_subseq) :]
-        outer_preds = [left_pred, right_pred]
+        sep = right_b_1 - left_b_1
+        for _range, pred in this_frag_preds:
+            lefts = _range[_range[:, 1] < sep]
+            middle = _range[np.all([_range[:, 0] < sep, _range[:, 1] >= sep], axis=0)]
+            rights = _range[_range[:, 0] >= sep]
+            middle_left = (
+                np.array([[middle[0, 0], sep - 1]])
+                if middle.size > 0
+                else np.array([[]])
+            )
+            middle_right = (
+                np.array([[sep, middle[0, 1]]]) if middle.size > 0 else np.array([[]])
+            )
+            new_range = np.vstack(
+                [
+                    lefts + left_b_1,
+                    middle_left + left_b_1,
+                    middle_right + left_b_2 - sep,
+                    rights + left_b_2 - sep,
+                ]
+            )
+            frag_preds.append((new_range, pred))
         memories.append(memory)
 
     # Patch sub predictions into global prediction
-    global_pred = "".join(preds)
-    if outer_bounds:
-        global_pred = outer_preds[0] + global_pred + outer_preds[1]
     memory = max(memories)
     ttot = time.time() - tstart
 
+    return frag_preds, None, None, ttot, memory
+
+
+def divide_predict(
+    seq,
+    max_length=1000,
+    max_steps=None,
+    multipred_kmax=20,
+    cut_model=default_model,
+    predict_fnc=mxfold2_predict,
+    struct="",
+    cuts_path=None,
+    rna_name="",
+):
+    tstart = time.time()
+
+    frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+        seq,
+        max_length=max_length,
+        max_steps=max_steps,
+        cut_model=cut_model,
+        predict_fnc=predict_fnc,
+        struct=struct,
+        cuts_path=cuts_path,
+        rna_name=rna_name,
+    )
+
+    def assemble_fragments(in_frag_preds):
+        connex_frags = []
+        for _range, pred in in_frag_preds:
+            fragment_pred = pred
+            for start, end in _range:
+                part_pred = fragment_pred[: end - start + 1]
+                fragment_pred = fragment_pred[end - start + 1 :]
+                connex_frags.append((start, end, part_pred))
+        connex_frags.sort(key=lambda x: x[0])
+        out_global_pred = "".join([pred for start, range, pred in connex_frags])
+        return out_global_pred
+
+    def find(tsum, mpreds):
+        if len(mpreds) == 1:
+            for pred, val in mpreds[0]:
+                if val == tsum:
+                    yield [pred]
+            return
+        for pred, val in mpreds[0]:
+            if val <= tsum:
+                for f in find(tsum - val, mpreds[1:]):
+                    yield [pred] + f
+        return
+
+    if isinstance(frag_preds[0][1], list):  # multiple predictions function
+        ranges, multipreds = zip(*frag_preds)
+        assert all(
+            [
+                (energy % 0.1 < 1e-4) or (energy % 0.1 > 0.1 - 1e-4)
+                for pred, energy in itertools.chain.from_iterable(multipreds)
+            ]
+        )
+        multipreds = [
+            [(pred, round(10 * energy)) for pred, energy in multi]
+            for multi in multipreds
+        ]
+        energy_mins = [min([energy for pred, energy in multi]) for multi in multipreds]
+        multipreds = [
+            [(pred, energy - energy_mins[i]) for pred, energy in multi]
+            for i, multi in enumerate(multipreds)
+        ]
+        target_energy = 0
+        selected_frag_preds = []
+        n_selected = 0
+        while True:
+            for match in find(target_energy, multipreds):
+                selected_frag_preds.append(match)
+                n_selected += 1
+                if n_selected >= multipred_kmax:
+                    break
+            else:
+                target_energy += 1
+                continue
+            break
+        all_frag_preds = [
+            list(zip(ranges, this_selected)) for this_selected in selected_frag_preds
+        ]
+        all_global_preds = [
+            assemble_fragments(this_frag_preds) for this_frag_preds in all_frag_preds
+        ]
+        global_energies = [eval_energy(seq, pred) for pred in all_global_preds]
+        all_global_preds = [
+            x[0]
+            for x in sorted(zip(all_global_preds, global_energies), key=lambda x: x[1])
+        ]
+        global_pred = all_global_preds[0]
+
+    else:  # single prediction function
+        global_pred = assemble_fragments(frag_preds)
+
+    ttot = time.time() - tstart
     return global_pred, None, None, ttot, memory
