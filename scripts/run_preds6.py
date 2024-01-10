@@ -8,7 +8,7 @@ from tensorflow import keras
 
 from src.predict import (
     divide_predict,
-    rnafold_predict,
+    mxfold2_predict,
 )
 from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
@@ -25,11 +25,11 @@ model.compile(
 
 run_preds(
     divide_predict,
-    Path("resources/divide_mlp_1000_rnaf_16S.csv"),
-    in_filename="16S23S",
+    Path("resources/divide_mlp_1000_mx_sequencewise_RETEST.csv"),
+    in_filename="test_sequencewise",
     kwargs={
         "max_length": 1000,
         "cut_model": model,  # with motifs input format
-        "predict_fnc": rnafold_predict,
+        "predict_fnc": mxfold2_predict,
     },
 )
