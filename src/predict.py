@@ -422,7 +422,7 @@ def divide_get_fragment_ranges_preds(
             if cuts_path is None
             else ("." * len(seq), None, None, 0.0, 0.0)
         )
-        frag_preds = [(np.array([[0, len(seq) - 1]]), pred)]
+        frag_preds = [(np.array([[0, len(seq) - 1]]).astype(int), pred)]
         return frag_preds, a, b, ttot, memory
 
     if struct:
@@ -541,7 +541,7 @@ def divide_get_fragment_ranges_preds(
                     rights + left_b_2 - sep,
                 ]
             )
-            frag_preds.append((new_range, pred))
+            frag_preds.append((new_range.astype(int), pred))
         memories.append(memory)
 
     # Patch sub predictions into global prediction
