@@ -247,18 +247,22 @@ def rnafold_predict(seq):
     return pred, None, None, ttot, 0.0
 
 
+def rnasubopt_predict(seq, kmax=5):
+    tstart = time.time()
+    output = os.popen(f"echo {seq} | RNAsubopt --sorted").read()
+    lines = output.strip().split("\n")[1 : kmax + 1]
+    pred = [(pred, float(energy)) for pred, energy in [l.split(" ") for l in lines]]
+    ttot = time.time() - tstart
+
+    return pred, None, None, ttot, 0.0
+
+
 def probknot_predict(seq):
     tstart = time.time()
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
-    path_in = f"temp_in_{suffix}.seq"
-    path_middle = f"temp_middle_{suffix}.ct"
-    path_out = f"temp_out_{suffix}.txt"
-    if os.path.exists(path_in):
-        os.remove(path_in)
-    if os.path.exists(path_middle):
-        os.remove(path_middle)
-    if os.path.exists(path_out):
-        os.remove(path_out)
+    path_in = f"temp_probknot_in_{suffix}.seq"
+    path_middle = f"temp_probknot_middle_{suffix}.ct"
+    path_out = f"temp_probknot_out_{suffix}.txt"
     seq = re.sub("[^ATCG]", "N", seq)
     with open(path_in, "w") as f:
         f.write(seq)
