@@ -7,18 +7,18 @@ from pathlib import Path
 
 from src.predict import (
     divide_predict,
-    rnafold_predict,
+    rnasubopt_predict,
 )
 from src.utils import run_preds
 
 run_preds(
     divide_predict,
-    Path("resources/divide_oracle_1000_rnaf_16S.csv"),
+    Path("resources/divide_oracle_1000_sub_16S23S.csv"),
     in_filename="16S23S",
-    use_structs=True,  # Oracle
+    use_structs=True,
     kwargs={
         "max_length": 1000,
         "cut_model": None,  # with motifs input format
-        "predict_fnc": rnafold_predict,
+        "predict_fnc": rnasubopt_predict,
     },
 )
