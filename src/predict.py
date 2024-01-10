@@ -528,10 +528,10 @@ def divide_get_fragment_ranges_preds(
             middle_left = (
                 np.array([[middle[0, 0], sep - 1]])
                 if middle.size > 0
-                else np.array([[]])
+                else np.zeros((0, 2))
             )
             middle_right = (
-                np.array([[sep, middle[0, 1]]]) if middle.size > 0 else np.array([[]])
+                np.array([[sep, middle[0, 1]]]) if middle.size > 0 else np.zeros((0, 2))
             )
             new_range = np.vstack(
                 [
