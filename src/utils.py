@@ -5,6 +5,7 @@ import re
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
+import datetime
 
 # import fm
 # import torch
@@ -68,6 +69,20 @@ def seq2kmer(seq, k):
     kmers = " ".join(kmer)
 
     return kmers
+
+
+def eval_energy(seq, struct):
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
+    path_in = f"temp_rnaeval_in_{suffix}.txt"
+    with open(path_in, "w") as f:
+        f.write(f"{seq}\n{struct}")
+
+    output = os.popen(f"RNAeval -i {path_in}").read()
+    res = float(output.split(" (")[1].split(")")[0])
+
+    os.remove(path_in)
+
+    return res
 
 
 def run_preds(
