@@ -27,6 +27,7 @@ run_preds(
     divide_predict,
     Path("resources/divide_cnn_1000_sub_16S23S.csv"),
     in_filename="16S23S",
+    feed_structs_to_print_fscores=True,
     kwargs={
         "max_length": 1000,
         "cut_model": model,  # with motifs input format

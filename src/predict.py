@@ -8,7 +8,6 @@ import re
 import numpy as np
 from scipy import signal
 import pickle
-import itertools
 
 import torch
 from torch.utils.data import DataLoader
@@ -26,7 +25,7 @@ import mxfold2
 from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
 
-from src.utils import format_data, eval_energy
+from src.utils import format_data, eval_energy, get_scores
 from src.models.loss import inv_exp_distance_to_cut_loss
 
 default_model = keras.models.load_model(
@@ -561,6 +560,7 @@ def divide_predict(
     struct="",
     cuts_path=None,
     rna_name="",
+    struct_to_print_fscores="",
 ):
     tstart = time.time()
 
@@ -601,12 +601,6 @@ def divide_predict(
 
     if isinstance(frag_preds[0][1], list):  # multiple predictions function
         ranges, multipreds = zip(*frag_preds)
-        assert all(
-            [
-                (energy % 0.1 < 1e-4) or (energy % 0.1 > 0.1 - 1e-4)
-                for pred, energy in itertools.chain.from_iterable(multipreds)
-            ]
-        )
         multipreds = [
             [(pred, round(10 * energy)) for pred, energy in multi]
             for multi in multipreds
@@ -641,11 +635,16 @@ def divide_predict(
             assemble_fragments(this_frag_preds) for this_frag_preds in all_frag_preds
         ]
         global_energies = [eval_energy(seq, pred) for pred in all_global_preds]
-        all_global_preds = [
-            x[0]
-            for x in sorted(zip(all_global_preds, global_energies), key=lambda x: x[1])
-        ]
+        pred_energies = list(
+            sorted(zip(all_global_preds, global_energies), key=lambda x: x[1])
+        )
+        all_global_preds, global_energies = zip(*pred_energies)
         global_pred = all_global_preds[0]
+
+        if struct_to_print_fscores:
+            for p, e in zip(all_global_preds, global_energies):
+                _, _, fscore, _ = get_scores(struct_to_print_fscores, p)
+                print((fscore, e))
 
     else:  # single prediction function
         global_pred = assemble_fragments(frag_preds)

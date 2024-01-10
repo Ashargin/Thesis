@@ -91,6 +91,7 @@ def run_preds(
     in_filename="test_sequencewise",
     allow_errors=False,
     use_structs=False,
+    feed_structs_to_print_fscores=False,
     store_cuts=False,
     max_len=None,
     kwargs={},
@@ -145,6 +146,8 @@ def run_preds(
         print(f"{i}/{n}")
         if use_structs:
             kwargs["struct"] = struct
+        if feed_structs_to_print_fscores:
+            kwargs["struct_to_print_fscores"] = struct
         if store_cuts:
             kwargs["cuts_path"] = out_path
             kwargs["rna_name"] = header
