@@ -619,6 +619,9 @@ def divide_predict(
         target_energy = 0
         selected_frag_preds = []
         n_selected = 0
+        max_energy = sum(
+            [max([energy for pred, energy in multi]) for multi in multipreds]
+        )
         while True:
             for match in find(target_energy, multipreds):
                 selected_frag_preds.append(match)
@@ -627,6 +630,8 @@ def divide_predict(
                     break
             else:
                 target_energy += 1
+                if target_energy > max_energy:
+                    break
                 continue
             break
         all_frag_preds = [
