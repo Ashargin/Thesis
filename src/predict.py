@@ -304,7 +304,7 @@ def ensemble_predict(seq, rnasubopt_kmax=5, delta=0.1):
     pred_lf, _, _, _, mem_lf = linearfold_predict(seq)
 
     energy_mx = eval_energy(seq, pred_mx)
-    energy_lf = eval_energy(seq, pref_lf)
+    energy_lf = eval_energy(seq, pred_lf)
 
     preds = preds_sub + [(pred_mx, energy_mx), (pred_lf, energy_lf)]
     preds.sort(key=lambda x: x[1])
