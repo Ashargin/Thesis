@@ -294,6 +294,27 @@ def probknot_predict(seq):
     return pred, None, None, ttot, 0.0
 
 
+def ensemble_predict(seq, rnasubopt_kmax=5, delta=0.1):
+    tstart = time.time()
+
+    preds_sub, _, _, _, mem_sub = rnasubopt_predict(
+        seq, kmax=rnasubopt_kmax, delta=delta
+    )
+    pred_mx, _, _, _, mem_mx = mxfold2_predict(seq)
+    pred_lf, _, _, _, mem_lf = linearfold_predict(seq)
+
+    energy_mx = eval_energy(seq, pred_mx)
+    energy_lf = eval_energy(seq, pref_lf)
+
+    preds = preds_sub + [(pred_mx, energy_mx), (pred_lf, energy_lf)]
+    preds.sort(key=lambda x: x[1])
+
+    memory = max([mem_sub, mem_mx, mem_lf])
+    ttot = time.time() - tstart
+
+    return preds, None, None, ttot, memory
+
+
 def oracle_get_cuts(struct):
     # Determine depth levels
     struct = re.sub("[^\(\)\.]", ".", struct)
