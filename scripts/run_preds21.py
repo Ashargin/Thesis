@@ -7,18 +7,19 @@ from pathlib import Path
 
 from src.predict import (
     divide_predict,
-    mxfold2_predict,
+    ensemble_predict,
 )
 from src.utils import run_preds
 
 run_preds(
     divide_predict,
-    Path("resources/divide_oracle_1000_mx_familywise_80.csv"),
-    in_filename="test_familywise_80",
-    use_structs=True,  # Oracle
+    Path("resources/divide_oracle_1000_ens_16S23S.csv"),
+    in_filename="16S23S",
+    use_structs=True,
+    feed_structs_to_print_fscores=True,
     kwargs={
         "max_length": 1000,
-        "cut_model": None,
-        "predict_fnc": mxfold2_predict,
+        "cut_model": None,  # with motifs input format
+        "predict_fnc": ensemble_predict,
     },
 )

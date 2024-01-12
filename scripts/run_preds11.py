@@ -4,14 +4,32 @@ import sys
 sys.path.append(os.getcwd())
 
 from pathlib import Path
+from tensorflow import keras
 
 from src.predict import (
-    linearfold_predict,
+    divide_predict,
+    rnasubopt_predict,
 )
+from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
+model = keras.models.load_model(
+    Path("resources/models/MLP_sequencewise"), compile=False
+)
+model.compile(
+    optimizer="adam",
+    loss=inv_exp_distance_to_cut_loss,
+    metrics=["accuracy"],
+    run_eagerly=True,
+)
+
 run_preds(
-    linearfold_predict,
-    Path("resources/linearfold_16S.csv"),
-    in_filename="16S23S",
+    divide_predict,
+    Path("resources/divide_mlp_1000_sub04_sequencewise.csv"),
+    in_filename="test_sequencewise",
+    kwargs={
+        "max_length": 1000,
+        "cut_model": model,  # with motifs input format
+        "predict_fnc": lambda x: rnasubopt_predict(x, delta=0.4),
+    },
 )
