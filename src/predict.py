@@ -247,14 +247,26 @@ def rnafold_predict(seq):
     return pred, None, None, ttot, 0.0
 
 
-def rnasubopt_predict(seq, kmax=5):
+def rnasubopt_predict(seq, kmax=5, delta=0.1):
     tstart = time.time()
     output = os.popen(f"echo {seq} | RNAsubopt --sorted").read()
-    lines = output.strip().split("\n")[1 : kmax + 1]
-    pred = [
-        (pred, float(energy))
-        for pred, energy in [[x for x in l.split(" ") if x] for l in lines]
+    lines = output.strip().split("\n")[1:]
+    all_preds = [
+        (pr, float(e)) for pr, e in [[x for x in l.split(" ") if x] for l in lines]
     ]
+
+    # Filter results
+    energy = -np.inf
+    selected = 0
+    preds = []
+    for pr, e in all_preds:
+        if e >= energy + delta:
+            preds.append((pr, e))
+            energy = e
+            selected += 1
+            if selected >= kmax:
+                break
+
     ttot = time.time() - tstart
 
     return pred, None, None, ttot, 0.0
