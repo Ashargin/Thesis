@@ -269,7 +269,7 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1):
 
     ttot = time.time() - tstart
 
-    return pred, None, None, ttot, 0.0
+    return preds, None, None, ttot, 0.0
 
 
 def probknot_predict(seq):
