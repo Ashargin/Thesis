@@ -74,6 +74,10 @@ def seq2kmer(seq, k):
 def eval_energy(seq, struct):
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_rnaeval_in_{suffix}.txt"
+    while os.path.exists(path_in):
+        time.sleep(0.01)
+        suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
+        path_in = f"temp_rnaeval_in_{suffix}.txt"
     with open(path_in, "w") as f:
         f.write(f"{seq}\n{struct}")
 
