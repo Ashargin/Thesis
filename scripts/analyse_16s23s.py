@@ -1,8 +1,9 @@
+import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 
 from src.utils import get_scores_df
 
@@ -12,70 +13,28 @@ from src.utils import get_scores_df
 
 ## Score predictions
 results_path = Path("resources/results/16S23S")
-divide_cnn_mx_scores = get_scores_df(
-    results_path / "divide_cnn_1000_mx_16S23S.csv", name="DivideFold CNN1D+MX"
-)
-divide_cnn_lf_scores = get_scores_df(
-    results_path / "divide_cnn_1000_lf_16S23S.csv", name="DivideFold CNN1D+LF"
-)
-divide_cnn_rnaf_scores = get_scores_df(
-    results_path / "divide_cnn_1000_rnaf_16S23S.csv", name="DivideFold CNN1D+RNAF"
-)
-divide_cnn_sub_scores = get_scores_df(
-    results_path / "divide_cnn_1000_sub_16S23S.csv", name="DivideFold CNN1D+SUB"
-)
-divide_mlp_mx_scores = get_scores_df(
-    results_path / "divide_mlp_1000_mx_16S23S.csv", name="DivideFold MLP+MX"
-)
-divide_mlp_lf_scores = get_scores_df(
-    results_path / "divide_mlp_1000_lf_16S23S.csv", name="DivideFold MLP+LF"
-)
-divide_mlp_rnaf_scores = get_scores_df(
-    results_path / "divide_mlp_1000_rnaf_16S23S.csv", name="DivideFold MLP+RNAF"
-)
-divide_mlp_sub_scores = get_scores_df(
-    results_path / "divide_mlp_1000_sub_16S23S.csv", name="DivideFold MLP+SUB"
-)
-divide_oracle_mx_scores = get_scores_df(
-    results_path / "divide_oracle_1000_mx_16S23S.csv", name="DivideFold Oracle+MX"
-)
-divide_oracle_lf_scores = get_scores_df(
-    results_path / "divide_oracle_1000_lf_16S23S.csv", name="DivideFold Oracle+LF"
-)
-divide_oracle_rnaf_scores = get_scores_df(
-    results_path / "divide_oracle_1000_rnaf_16S23S.csv", name="DivideFold Oracle+RNAF"
-)
-divide_oracle_sub_scores = get_scores_df(
-    results_path / "divide_oracle_1000_sub_16S23S.csv", name="DivideFold Oracle+SUB"
-)
-mxfold2_scores = get_scores_df(results_path / "mxfold2_16S23S.csv", name="MXfold2")
-linearfold_scores = get_scores_df(
-    results_path / "linearfold_16S23S.csv", name="LinearFold"
-)
-rnafold_scores = get_scores_df(results_path / "rnafold_16S23S.csv", name="RNAfold")
-probknot_scores = get_scores_df(results_path / "probknot_16S23S.csv", name="ProbKnot")
+files = os.listdir(results_path)
+
+
+def filename_to_model_name(filename):
+    parts = [f for f in filename.split("_") if not f.isnumeric()]
+    model_transform = {
+        "divide": "DivideFold",
+        "linearfold": "LinearFold",
+        "mxfold2": "MXfold2",
+        "probknot": "ProbKnot",
+        "rnafold": "RNAfold",
+    }
+    res = model_transform[parts[0]] + " " + "+".join(parts[1:-1]).upper()
+    return res
+
+
+scores = [
+    get_scores_df(results_path / f, name=filename_to_model_name(f)) for f in files
+]
 
 data = (
-    pd.concat(
-        [
-            divide_cnn_mx_scores,
-            divide_cnn_lf_scores,
-            divide_cnn_rnaf_scores,
-            divide_cnn_sub_scores,
-            divide_mlp_mx_scores,
-            divide_mlp_lf_scores,
-            divide_mlp_rnaf_scores,
-            divide_mlp_sub_scores,
-            divide_oracle_mx_scores,
-            divide_oracle_lf_scores,
-            divide_oracle_rnaf_scores,
-            divide_oracle_sub_scores,
-            mxfold2_scores,
-            linearfold_scores,
-            rnafold_scores,
-            probknot_scores,
-        ]
-    )
+    pd.concat(scores)
     .sort_values("fscore", ascending=False)
     .reset_index(drop=True)
     .loc[:, ["rna_name", "model", "fscore"]]

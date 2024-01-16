@@ -13,7 +13,7 @@ from src.utils import get_scores, get_scores_df
 # bpRNA_CRW_55337, 4216, 0.332103
 rna = "bpRNA_RFAM_43136"
 
-results_path = Path("resources/results")
+results_path = Path("resources/results/sequencewise")
 oracle_scores = get_scores_df(
     results_path / "divide_oracle_1000_rnaf_sequencewise.csv"
 ).set_index("rna_name")
@@ -315,7 +315,7 @@ from src.utils import get_scores_df
 # oracle_scores.to_csv(r'resources/results/oracle_sequencewise_analyse_splits.csv', index=False)
 
 
-results_path = Path("resources/results")
+results_path = Path("resources/results/sequencewise")
 sers_preds = [
     get_scores_df(results_path / "divide_oracle_1000_mx_sequencewise.csv")[
         ["struct", "pred"]
