@@ -25,10 +25,10 @@ model.compile(
 
 run_preds(
     divide_predict,
-    Path("resources/divide_cnn_800_mx_sequencewise.csv"),
-    in_filename="test_sequencewise",
+    Path("resources/divide_cnn_1000_mx_benchmarkSce.csv"),
+    in_filename="benchmark_sce",
     kwargs={
-        "max_length": 800,
+        "max_length": 1000,
         "cut_model": model,  # with motifs input format
         "predict_fnc": mxfold2_predict,
     },

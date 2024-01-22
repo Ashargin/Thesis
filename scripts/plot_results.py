@@ -13,17 +13,29 @@ files = os.listdir(results_path)
 
 
 def filename_to_model_name(filename):
-    parts = [f for f in filename.split("_") if not f.isnumeric()]
+    parts = filename.split("_")[:-1]
     model_transform = {
         "divide": "DivideFold",
         "linearfold": "LinearFold",
         "mxfold2": "MXfold2",
         "probknot": "ProbKnot",
         "rnafold": "RNAfold",
+        "mx": "MXfold2",
+        "lf": "LinearFold",
+        "rnaf": "RNAfold",
+        "ens": "Ensemble",
+        "sub": "RNAsubopt",
     }
-    res = model_transform[parts[0]] + " " + "+".join(parts[1:-1]).upper()
-    res = res.strip()
-    return res
+    if parts[0] != "divide":
+        model = model_transform[parts[0]]
+    else:
+        stop = (
+            f"(until {parts[2]} nc.)"
+            if parts[2].isnumeric()
+            else f"(limited to {parts[2][:-1]} steps)"
+        )
+        model = f"{model_transform[parts[0]]}{parts[1].upper()} {stop} + {model_transform[parts[3]]}"
+    return model
 
 
 scores = [
@@ -57,39 +69,58 @@ def plot(data, yvar):
     xtickslabels = [
         f"{str(a)}-{str(b-1)} nc.\n{data[data.bin == i].rna_name.nunique()} RNAs"
         for i, (a, b) in enumerate(zip(bins[:-1], bins[1:]))
+        if i in data.bin.unique()
     ]
-    print(xtickslabels)
     ax.set_xticklabels(xtickslabels)
-    print(ax.get_xticklabels())
     ax.set_xlabel("Length")
     ax.set_ylabel(yvar.capitalize())
     ax.set_title(f"{yvar.capitalize()} vs sequence length")
+    ax.legend(loc="upper left")
 
 
 def plot_all(data):
     plot(data, "fscore")
-    plot(data, "mcc")
-    plot(data, "time")
-    plot(data, "memory")
+    plt.ylim([0, 1])
+    # plot(data[data.length >= 1000], "mcc")
+    plot(data[data.length <= 1700], "time")
+    plt.ylim([0, 30])
+    plot(data[data.length >= 1000], "memory")
     plt.show()
 
 
 data = pd.concat(
-    [  # data_sequencewise[data_sequencewise.model == 'DivideFold MLP+RNAF'],
-        # data_sequencewise[data_sequencewise.model == 'DivideFold CNN+RNAF'],
-        # data_sequencewise[data_sequencewise.model == 'DivideFold ORACLE+RNAF'],
-        # data_sequencewise[data_sequencewise.model == 'DivideFold MLP+LF'],
-        # data_sequencewise[data_sequencewise.model == 'DivideFold CNN+LF'],
-        # data_sequencewise[data_sequencewise.model == 'DivideFold ORACLE+LF'],
-        # data_sequencewise[data_sequencewise.model == 'DivideFold MLP+MX'],
-        data_sequencewise[data_sequencewise.model == "DivideFold CNN+MX"],
-        # data_sequencewise[data_sequencewise.model == 'DivideFold ORACLE+MX'],
-        # data_sequencewise[data_sequencewise.model == 'ProbKnot'],
-        data_sequencewise[data_sequencewise.model == "RNAfold"],
-        data_sequencewise[data_sequencewise.model == "LinearFold"],
-        data_sequencewise[data_sequencewise.model == "MXfold2"],
+    [
+        data_sequencewise[data_sequencewise.model == x]
+        for x in [  # 'DivideFoldCNN (limited to 1 steps) + MXfold2',
+            # 'DivideFoldCNN (limited to 2 steps) + MXfold2',
+            # 'DivideFoldCNN (limited to 3 steps) + MXfold2',
+            # 'DivideFoldCNN (limited to 4 steps) + MXfold2',
+            # 'DivideFoldCNN (limited to 5 steps) + MXfold2',
+            "DivideFoldCNN (until 200 nc.) + MXfold2",
+            "DivideFoldCNN (until 400 nc.) + MXfold2",
+            "DivideFoldCNN (until 600 nc.) + MXfold2",
+            "DivideFoldCNN (until 800 nc.) + MXfold2",
+            "DivideFoldCNN (until 1000 nc.) + MXfold2",
+            # 'DivideFoldCNN (until 1000 nc.) + LinearFold',
+            # 'DivideFoldCNN (until 1000 nc.) + RNAfold',
+            # 'DivideFoldCNN (until 1000 nc.) + RNAsubopt',
+            # 'DivideFoldCNN (until 1000 nc.) + Ensemble',
+            # 'DivideFoldMLP (until 1000 nc.) + MXfold2',
+            # 'DivideFoldMLP (until 1000 nc.) + LinearFold',
+            # 'DivideFoldMLP (until 1000 nc.) + RNAfold',
+            # 'DivideFoldMLP (until 1000 nc.) + RNAsubopt',
+            # 'DivideFoldMLP (until 1000 nc.) + Ensemble',
+            # 'DivideFoldORACLE (until 1000 nc.) + MXfold2',
+            # 'DivideFoldORACLE (until 1000 nc.) + LinearFold',
+            # 'DivideFoldORACLE (until 1000 nc.) + RNAfold',
+            # 'DivideFoldORACLE (until 1000 nc.) + RNAsubopt',
+            # 'DivideFoldORACLE (until 1000 nc.) + Ensemble',
+            # 'MXfold2',
+            # 'LinearFold',
+            # 'RNAfold',
+            # 'ProbKnot',
+        ]
     ]
 )
-plot(clean_data(data), "fscore")
-plt.legend(loc="upper left")
+plot_all(clean_data(data))
 plt.show()

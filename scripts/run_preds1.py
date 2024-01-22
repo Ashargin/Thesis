@@ -25,8 +25,8 @@ model.compile(
 
 run_preds(
     divide_predict,
-    Path("resources/divide_cnn_1000_mx_sequencewise.csv"),
-    in_filename="test_sequencewise",
+    Path("resources/divide_cnn_1000_mx_benchmarkLncrna.csv"),
+    in_filename="benchmark_lncRNAs",
     kwargs={
         "max_length": 1000,
         "cut_model": model,  # with motifs input format
