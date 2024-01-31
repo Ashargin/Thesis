@@ -28,10 +28,10 @@ from UFold.ufold_predict import main as main_ufold
 from src.utils import format_data, eval_energy, get_scores
 from src.models.loss import inv_exp_distance_to_cut_loss
 
-default_model = keras.models.load_model(
+cnn_cut_model = keras.models.load_model(
     Path("resources/models/CNN1D_sequencewise"), compile=False
 )
-default_model.compile(
+cnn_cut_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
     metrics=["accuracy"],
@@ -401,7 +401,7 @@ def oracle_get_cuts(struct):
     return cuts, outer
 
 
-def divide_get_cuts(seq, min_height=0.28, min_distance=12, cut_model=default_model):
+def divide_get_cuts(seq, min_height=0.28, min_distance=12, cut_model=cnn_cut_model):
     seq_mat = format_data(seq).reshape((1, -1, 297))
 
     cuts = cut_model(seq_mat).numpy().ravel()
@@ -439,7 +439,7 @@ def divide_get_fragment_ranges_preds(
     seq,
     max_length=1000,
     max_steps=None,
-    cut_model=default_model,
+    cut_model=cnn_cut_model,
     predict_fnc=mxfold2_predict,
     struct="",
     cuts_path=None,
@@ -587,7 +587,7 @@ def divide_predict(
     max_length=1000,
     max_steps=None,
     multipred_kmax=20,
-    cut_model=default_model,
+    cut_model=cnn_cut_model,
     predict_fnc=mxfold2_predict,
     struct="",
     cuts_path=None,
