@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append(os.getcwd())
+
 import cProfile
 import pandas as pd
 from pathlib import Path
