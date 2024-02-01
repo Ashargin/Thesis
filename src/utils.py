@@ -295,7 +295,10 @@ def seq_to_one_hot(seq):
     return seq_one_hot.T
 
 
-def seq_to_motif_matches(seq, **kwargs):
+def seq_to_motif_matches(seq, max_motifs=None, **kwargs):
+    if max_motifs == 0:
+        return np.zeros((len(seq), max_motifs))
+
     def get_motif_matches(seq, motif, overlap=True, stack=True, normalize=False):
         # Compile regex with pattern
         pattern = "(" + motif.replace("*", ").*?(") + ")"
@@ -318,7 +321,10 @@ def seq_to_motif_matches(seq, **kwargs):
 
         return scores
 
-    scores_matrix = df_motifs.motif_seq.apply(
+    max_motifs = df_motifs.shape[0] if max_motifs is None else max_motifs
+    used_index = df_motifs.sort_index().sort_values("time").index[:max_motifs]
+    df_motifs_used = df_motifs.loc[used_index].sort_index()
+    scores_matrix = df_motifs_used.motif_seq.apply(
         lambda motif: get_motif_matches(seq, motif, **kwargs)
     )
     scores_matrix = np.vstack(scores_matrix)
@@ -359,14 +365,14 @@ def seq_to_motif_matches(seq, **kwargs):
 #     return seq_mat
 
 
-def format_data(seq, cuts=None, input_format="motifs", **kwargs):
+def format_data(seq, cuts=None, input_format="motifs", max_motifs=None, **kwargs):
     seq_array = None
     if input_format == "one_hot":
         seq_array = seq_to_one_hot(seq)
 
     elif input_format == "motifs":
         seq_one_hot = seq_to_one_hot(seq)
-        seq_motifs = seq_to_motif_matches(seq, **kwargs)
+        seq_motifs = seq_to_motif_matches(seq, max_motifs=max_motifs, **kwargs)
         seq_array = np.hstack([seq_one_hot, seq_motifs])
 
     # elif input_format == 'rna_fm':
@@ -377,7 +383,7 @@ def format_data(seq, cuts=None, input_format="motifs", **kwargs):
 
     elif input_format == "concatenate":
         seq_one_hot = seq_to_one_hot(seq)
-        seq_motifs = seq_to_motif_matches(seq, **kwargs)
+        seq_motifs = seq_to_motif_matches(seq, max_motifs=max_motifs, **kwargs)
         # seq_rnafm = seq_to_rna_fm(seq)
         seq_dnabert = seq_to_dnabert(seq)
         # seq_array = np.hstack([seq_one_hot, seq_motifs, seq_rnafm, seq_dnabert])

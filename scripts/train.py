@@ -15,8 +15,10 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 
 # from src.utils import seq2kmer
 
+MAX_MOTIFS = 200
+
 # Load model
-model = MLP()
+model = CNN1D(input_shape=(None, MAX_MOTIFS + 4))
 model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
@@ -26,9 +28,15 @@ model.compile(
 
 
 # Dataloader
-def motif_cache_data_generator(folder_path, max_len=None):
+def motif_cache_data_generator(folder_path, max_motifs=MAX_MOTIFS, max_len=None):
     files = os.listdir(folder_path)
     np.random.shuffle(files)
+
+    df_motifs = pd.read_csv(Path("resources/motif_seqs.csv"), index_col=0)
+    df_motifs = df_motifs[df_motifs.time < 0.012].reset_index(drop=True)
+    max_motifs = df_motifs.shape[0] if max_motifs is None else max_motifs
+    used_index = df_motifs.sort_index().sort_values("time").index[:max_motifs]
+    used_index = [0, 1, 2, 3] + (used_index + 4).to_list()  # add one-hot
 
     seq_mat, cuts_mat, outer = None, None, None
     i = 0
@@ -40,13 +48,14 @@ def motif_cache_data_generator(folder_path, max_len=None):
         cuts_mat = cuts_mat.toarray()
         # outer = outer.toarray()
 
+        seq_mat = seq_mat[:, used_index]  # keep top max_motifs motifs
         cuts_mat = np.where(cuts_mat.ravel() == 1)[0].astype(float)  # cut indices
 
         i += 1
         if max_len is not None and seq_mat.shape[0] > max_len:
             continue
 
-        yield seq_mat.reshape((1, seq_mat.shape[0], 297)), cuts_mat.reshape(
+        yield seq_mat.reshape((1, seq_mat.shape[0], max_motifs + 4)), cuts_mat.reshape(
             (1, cuts_mat.shape[0])
         )
 
@@ -97,8 +106,8 @@ def dnabert_data_generator(csv_path, max_len=None):
 
 
 # Fit model
-train_path = Path("resources/data_splits/train_familywise_80")
-test_path = Path("resources/data_splits/test_familywise_80")
+train_path = Path("resources/data_splits/train_sequencewise")
+test_path = Path("resources/data_splits/test_sequencewise")
 # train_csv_path = Path("resources/data/train.csv")
 # test_csv_path = Path("resources/data/test.csv")
 # n_train = len(os.listdir(train_path))
@@ -111,16 +120,20 @@ history = model.fit(
     validation_steps=305,
 )
 
-model.save(Path("resources/models/MLP_familywise_80"))
+model.save(Path("resources/models/CNN1D_sequencewise_200"))
 
 import matplotlib.pyplot as plt
 
 loss = history.history["loss"]
 val_loss = history.history["val_loss"]
 X = np.arange(len(loss))
-plt.plot(X, loss, label="loss")
-plt.plot(X, val_loss, label="val_loss")
+plt.plot(X, loss, label="Train loss")
+plt.plot(X, val_loss, label="Validation loss")
 plt.legend()
+plt.xlim(([0, 100]))
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title("Training loss curve (sequence-wise train / test split)")
 plt.show()
 
 my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)

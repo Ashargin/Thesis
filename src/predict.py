@@ -401,8 +401,10 @@ def oracle_get_cuts(struct):
     return cuts, outer
 
 
-def divide_get_cuts(seq, min_height=0.28, min_distance=12, cut_model=cnn_cut_model):
-    seq_mat = format_data(seq).reshape((1, -1, 297))
+def divide_get_cuts(
+    seq, min_height=0.28, min_distance=12, cut_model=cnn_cut_model, max_motifs=None
+):
+    seq_mat = format_data(seq, max_motifs=max_motifs).reshape((1, -1, 297))
 
     cuts = cut_model(seq_mat).numpy().ravel()
     min_height = min(min_height, max(cuts))
@@ -441,6 +443,7 @@ def divide_get_fragment_ranges_preds(
     max_steps=None,
     cut_model=cnn_cut_model,
     predict_fnc=mxfold2_predict,
+    max_motifs=None,
     struct="",
     cuts_path=None,
     rna_name="",
@@ -459,7 +462,7 @@ def divide_get_fragment_ranges_preds(
     if struct:
         cuts, outer = oracle_get_cuts(struct)
     else:
-        cuts, outer = divide_get_cuts(seq, cut_model=cut_model)
+        cuts, outer = divide_get_cuts(seq, cut_model=cut_model, max_motifs=max_motifs)
     if cuts_path is not None:
         line = f'{rna_name.split("#Name: ")[1]},{seq},{str(cuts).replace(",", "")},{outer}\n'
         with open(cuts_path, "a") as f_out:
@@ -499,6 +502,7 @@ def divide_get_fragment_ranges_preds(
                 max_steps=max_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
+                max_motifs=max_motifs,
                 struct=substruct,
                 cuts_path=cuts_path,
                 rna_name=rna_name,
@@ -510,6 +514,7 @@ def divide_get_fragment_ranges_preds(
                 max_steps=max_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
+                max_motifs=max_motifs,
                 cuts_path=cuts_path,
                 rna_name=rna_name,
             )
@@ -536,6 +541,7 @@ def divide_get_fragment_ranges_preds(
                 max_steps=max_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
+                max_motifs=max_motifs,
                 struct=substruct,
                 cuts_path=cuts_path,
                 rna_name=rna_name,
@@ -547,6 +553,7 @@ def divide_get_fragment_ranges_preds(
                 max_steps=max_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
+                max_motifs=max_motifs,
                 cuts_path=cuts_path,
                 rna_name=rna_name,
             )
@@ -589,6 +596,7 @@ def divide_predict(
     multipred_kmax=20,
     cut_model=cnn_cut_model,
     predict_fnc=mxfold2_predict,
+    max_motifs=None,
     struct="",
     cuts_path=None,
     rna_name="",
@@ -602,6 +610,7 @@ def divide_predict(
         max_steps=max_steps,
         cut_model=cut_model,
         predict_fnc=predict_fnc,
+        max_motifs=max_motifs,
         struct=struct,
         cuts_path=cuts_path,
         rna_name=rna_name,
