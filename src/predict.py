@@ -404,7 +404,7 @@ def oracle_get_cuts(struct):
 def divide_get_cuts(
     seq, min_height=0.28, min_distance=12, cut_model=cnn_cut_model, max_motifs=None
 ):
-    seq_mat = format_data(seq, max_motifs=max_motifs).reshape((1, -1, 297))
+    seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
     cuts = cut_model(seq_mat).numpy().ravel()
     min_height = min(min_height, max(cuts))
