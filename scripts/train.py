@@ -15,7 +15,7 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 
 # from src.utils import seq2kmer
 
-MAX_MOTIFS = 200
+MAX_MOTIFS = 293
 
 # Load model
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4))
@@ -35,7 +35,9 @@ def motif_cache_data_generator(folder_path, max_motifs=MAX_MOTIFS, max_len=None)
     df_motifs = pd.read_csv(Path("resources/motif_seqs.csv"), index_col=0)
     df_motifs = df_motifs[df_motifs.time < 0.012].reset_index(drop=True)
     max_motifs = df_motifs.shape[0] if max_motifs is None else max_motifs
-    used_index = df_motifs.sort_index().sort_values("time").index[:max_motifs]
+    used_index = (
+        df_motifs.sort_index().sort_values("time").index[:max_motifs].sort_values()
+    )
     used_index = [0, 1, 2, 3] + (used_index + 4).to_list()  # add one-hot
 
     seq_mat, cuts_mat, outer = None, None, None
@@ -120,7 +122,7 @@ history = model.fit(
     validation_steps=305,
 )
 
-model.save(Path("resources/models/CNN1D_sequencewise_200"))
+model.save(Path(f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs"))
 
 import matplotlib.pyplot as plt
 

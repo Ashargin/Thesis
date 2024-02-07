@@ -19,7 +19,7 @@ import datetime
 
 # Read motifs
 df_motifs = pd.read_csv(Path("resources/motif_seqs.csv"), index_col=0)
-df_motifs = df_motifs[df_motifs.time < 0.012]
+df_motifs = df_motifs[df_motifs.time < 0.012].reset_index(drop=True)
 
 # Load DNABERT
 # dnabert_tokenizer = AutoTokenizer.from_pretrained("zhihan1996/DNA_bert_6",
@@ -322,8 +322,10 @@ def seq_to_motif_matches(seq, max_motifs=None, **kwargs):
         return scores
 
     max_motifs = df_motifs.shape[0] if max_motifs is None else max_motifs
-    used_index = df_motifs.sort_index().sort_values("time").index[:max_motifs]
-    df_motifs_used = df_motifs.loc[used_index].sort_index()
+    used_index = (
+        df_motifs.sort_index().sort_values("time").index[:max_motifs].sort_values()
+    )
+    df_motifs_used = df_motifs.loc[used_index]
     scores_matrix = df_motifs_used.motif_seq.apply(
         lambda motif: get_motif_matches(seq, motif, **kwargs)
     )
