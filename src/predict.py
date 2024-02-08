@@ -29,7 +29,7 @@ from src.utils import format_data, eval_energy, get_scores
 from src.models.loss import inv_exp_distance_to_cut_loss
 
 cnn_cut_model = keras.models.load_model(
-    Path("resources/models/CNN1D_sequencewise"), compile=False
+    Path("resources/models/CNN1D_sequencewise_50motifs"), compile=False
 )
 cnn_cut_model.compile(
     optimizer="adam",
@@ -596,7 +596,7 @@ def divide_predict(
     multipred_kmax=20,
     cut_model=cnn_cut_model,
     predict_fnc=mxfold2_predict,
-    max_motifs=None,
+    max_motifs=50,
     struct="",
     cuts_path=None,
     rna_name="",
