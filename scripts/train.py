@@ -15,10 +15,11 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 
 # from src.utils import seq2kmer
 
-MAX_MOTIFS = 293
+MAX_MOTIFS = 50
+MAX_DIL = 2048
 
 # Load model
-model = CNN1D(input_shape=(None, MAX_MOTIFS + 4))
+model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
 model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
@@ -118,11 +119,11 @@ history = model.fit(
     motif_cache_data_generator(train_path),
     validation_data=motif_cache_data_generator(test_path),
     steps_per_epoch=1267,
-    epochs=100,
+    epochs=10,
     validation_steps=305,
 )
 
-model.save(Path(f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs"))
+model.save(Path(f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dil"))
 
 import matplotlib.pyplot as plt
 
@@ -136,6 +137,9 @@ plt.xlim(([0, 100]))
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Training loss curve (sequence-wise train / test split)")
+plt.savefig(
+    rf"resources/png/training_curve_cnn_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dil.png"
+)
 plt.show()
 
 my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
