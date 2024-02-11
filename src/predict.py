@@ -427,7 +427,7 @@ def divide_get_cuts(
             break
         min_height *= 0.9
         peaks = get_peaks(min_height)
-        outer = True
+    outer = True
 
     return peaks, outer
 
