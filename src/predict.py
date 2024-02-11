@@ -427,7 +427,7 @@ def divide_get_cuts(
             break
         min_height *= 0.9
         peaks = get_peaks(min_height)
-    outer = True
+        outer = True
 
     return peaks, outer
 
@@ -445,15 +445,14 @@ def divide_get_fragment_ranges_preds(
     predict_fnc=mxfold2_predict,
     max_motifs=None,
     struct="",
-    cuts_path=None,
-    rna_name="",
+    evaluate_cutting_model=False,
 ):
     tstart = time.time()
 
     if len(seq) <= max_length or max_steps == 0:
         pred, a, b, ttot, memory = (
             predict_fnc(seq)
-            if cuts_path is None
+            if not evaluate_cutting_model
             else ("." * len(seq), None, None, 0.0, 0.0)
         )
         frag_preds = [(np.array([[0, len(seq) - 1]]).astype(int), pred)]
@@ -463,10 +462,6 @@ def divide_get_fragment_ranges_preds(
         cuts, outer = oracle_get_cuts(struct)
     else:
         cuts, outer = divide_get_cuts(seq, cut_model=cut_model, max_motifs=max_motifs)
-    if cuts_path is not None:
-        line = f'{rna_name.split("#Name: ")[1]},{seq},{str(cuts).replace(",", "")},{outer}\n'
-        with open(cuts_path, "a") as f_out:
-            f_out.write(line)
 
     # Cut sequence into subsequences
     random_cuts = [int(len(seq) / 3), int(len(seq) * 2 / 3)]
@@ -504,8 +499,7 @@ def divide_get_fragment_ranges_preds(
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
                 struct=substruct,
-                cuts_path=cuts_path,
-                rna_name=rna_name,
+                evaluate_cutting_model=evaluate_cutting_model,
             )
         else:
             this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
@@ -515,8 +509,7 @@ def divide_get_fragment_ranges_preds(
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
-                cuts_path=cuts_path,
-                rna_name=rna_name,
+                evaluate_cutting_model=evaluate_cutting_model,
             )
 
         for _range, pred in this_frag_preds:
@@ -543,8 +536,7 @@ def divide_get_fragment_ranges_preds(
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
                 struct=substruct,
-                cuts_path=cuts_path,
-                rna_name=rna_name,
+                evaluate_cutting_model=evaluate_cutting_model,
             )
         else:
             this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
@@ -554,8 +546,7 @@ def divide_get_fragment_ranges_preds(
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
-                cuts_path=cuts_path,
-                rna_name=rna_name,
+                evaluate_cutting_model=evaluate_cutting_model,
             )
 
         sep = right_b_1 - left_b_1
@@ -598,9 +589,8 @@ def divide_predict(
     predict_fnc=mxfold2_predict,
     max_motifs=50,
     struct="",
-    cuts_path=None,
-    rna_name="",
     struct_to_print_fscores="",
+    evaluate_cutting_model=False,
 ):
     tstart = time.time()
 
@@ -612,9 +602,11 @@ def divide_predict(
         predict_fnc=predict_fnc,
         max_motifs=max_motifs,
         struct=struct,
-        cuts_path=cuts_path,
-        rna_name=rna_name,
+        evaluate_cutting_model=evaluate_cutting_model,
     )
+
+    if evaluate_cutting_model:
+        return frag_preds, None, None, None, None
 
     def assemble_fragments(in_frag_preds):
         connex_frags = []

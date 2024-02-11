@@ -95,11 +95,11 @@ def run_preds(
     in_filename="test_sequencewise",
     allow_errors=False,
     use_structs=False,
-    feed_structs_to_print_fscores=False,
-    store_cuts=False,
     max_len=None,
     kwargs={},
     compute_frac=None,
+    feed_structs_to_print_fscores=False,
+    evaluate_cutting_model=False,
 ):
     # Read input
     in_path = Path(f"resources/data_structures/{in_filename}.dbn")
@@ -107,33 +107,34 @@ def run_preds(
         content = f.read()
     lines = content.strip().split("\n")
     assert len(lines) % 3 == 0
-    headers = lines[0::3]
+    names = lines[0::3]
     seqs = lines[1::3]
     structs = lines[2::3]
     n = len(seqs)
 
     # Read already predicted
-    if store_cuts:
+    if evaluate_cutting_model:
         filename, ext = os.path.splitext(out_path)
         out_path = filename + "_cuts" + ext
     if not out_path.exists():
         with open(out_path, "w") as f:
             pass
-    if not store_cuts:
-        with open(out_path, "r") as f:
-            processed = f.read()
-        lines = processed.split("\n")[1:]
-        if lines and not lines[-1]:
-            lines = lines[:-1]
-        n_processed = len(lines)
-        f_out = open(out_path, "w")
-        if len(processed) == 0:
-            f_out.write("rna_name,seq,struct,pred,ttot,memory\n")
-        f_out.write(processed)
+    with open(out_path, "r") as f:
+        processed = f.read()
+    lines = processed.split("\n")[1:]
+    if lines and not lines[-1]:
+        lines = lines[:-1]
+    n_processed = len(lines)
+    f_out = open(out_path, "w")
+    if len(processed) == 0:
+        header = (
+            "rna_name,seq,struct,cuts"
+            if evaluate_cutting_model
+            else "rna_name,seq,struct,pred,ttot,memory"
+        )
+        f_out.write(f"{header}\n")
     else:
-        f_out = open(out_path, "w")
-        f_out.write("rna_name,seq,cuts,outer\n")
-        n_processed = 0
+        f_out.write(processed)
     f_out.close()
 
     def dummy_response(input_len):
@@ -143,7 +144,7 @@ def run_preds(
     print(f"Predicting to {out_path}")
     print(f"{n_processed}/{n} already processed")
     skip_counter = 0.0
-    for i, (header, seq, struct) in enumerate(zip(headers, seqs, structs)):
+    for i, (name, seq, struct) in enumerate(zip(names, seqs, structs)):
         if i < n_processed:
             continue
 
@@ -152,9 +153,8 @@ def run_preds(
             kwargs["struct"] = struct
         if feed_structs_to_print_fscores:
             kwargs["struct_to_print_fscores"] = struct
-        if store_cuts:
-            kwargs["cuts_path"] = out_path
-            kwargs["rna_name"] = header
+        if evaluate_cutting_model:
+            kwargs["evaluate_cutting_model"] = True
 
         if compute_frac is not None and skip_counter < 0:
             skip_counter += compute_frac
@@ -174,12 +174,14 @@ def run_preds(
             pred, _, _, ttot, memory = fnc(seq, **kwargs)
             if compute_frac is not None:
                 skip_counter += compute_frac - 1
-        if not store_cuts:
-            line = (
-                f'{header.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
-            )
-            with open(out_path, "a") as f_out:
-                f_out.write(line)
+        ######### transform pred to cuts if evaluating cutting model
+        line = (
+            f'{name.split("#Name: ")[1]},{seq},{struct},{pred}\n'
+            if evaluate_cutting_model
+            else f'{name.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
+        )
+        with open(out_path, "a") as f_out:
+            f_out.write(line)
 
 
 def get_scores(y, y_hat):

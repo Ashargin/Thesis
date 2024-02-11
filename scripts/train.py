@@ -16,7 +16,7 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 # from src.utils import seq2kmer
 
 MAX_MOTIFS = 50
-MAX_DIL = 2048
+MAX_DIL = 1024
 
 # Load model
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
@@ -119,11 +119,13 @@ history = model.fit(
     motif_cache_data_generator(train_path),
     validation_data=motif_cache_data_generator(test_path),
     steps_per_epoch=1267,
-    epochs=10,
+    epochs=100,
     validation_steps=305,
 )
 
-model.save(Path(f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dil"))
+model.save(
+    Path(f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV")
+)
 
 import matplotlib.pyplot as plt
 
@@ -138,7 +140,7 @@ plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Training loss curve (sequence-wise train / test split)")
 plt.savefig(
-    rf"resources/png/training_curve_cnn_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dil.png"
+    rf"resources/png/training_curve_cnn_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV.png"
 )
 plt.show()
 
