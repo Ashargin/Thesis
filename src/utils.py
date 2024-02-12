@@ -115,7 +115,7 @@ def run_preds(
     # Read already predicted
     if evaluate_cutting_model:
         filename, ext = os.path.splitext(out_path)
-        out_path = filename + "_cuts" + ext
+        out_path = Path(filename + "_cuttingmetrics" + ext)
     if not out_path.exists():
         with open(out_path, "w") as f:
             pass
@@ -128,7 +128,7 @@ def run_preds(
     f_out = open(out_path, "w")
     if len(processed) == 0:
         header = (
-            "rna_name,seq,struct,cuts"
+            "rna_name,seq,struct,break_rate,compression"
             if evaluate_cutting_model
             else "rna_name,seq,struct,pred,ttot,memory"
         )
@@ -174,12 +174,37 @@ def run_preds(
             pred, _, _, ttot, memory = fnc(seq, **kwargs)
             if compute_frac is not None:
                 skip_counter += compute_frac - 1
-        ######### transform pred to cuts if evaluating cutting model
-        line = (
-            f'{name.split("#Name: ")[1]},{seq},{struct},{pred}\n'
-            if evaluate_cutting_model
-            else f'{name.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
-        )
+        if evaluate_cutting_model:
+            frags = [p[0] for p in pred]
+            pairs = struct_to_pairs(struct)
+            frag_attrib = np.zeros(
+                (
+                    len(
+                        seq,
+                    )
+                ),
+                dtype=int,
+            )
+            for i, f in enumerate(frags):
+                for start, end in f:
+                    frag_attrib[start : end + 1] = i
+            n_pairs = 0
+            n_breaks = 0
+            for i, j in enumerate(pairs):
+                j -= 1
+                if j > i:
+                    n_pairs += 1
+                    if frag_attrib[i] != frag_attrib[j]:
+                        n_breaks += 1
+            break_rate = n_breaks / n_pairs
+            compression = (
+                1 / ((pd.Series(frag_attrib).value_counts() / len(seq)) ** 2).sum()
+            )
+            line = (
+                '{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression}\n'
+            )
+        else:
+            line = f'{name.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
         with open(out_path, "a") as f_out:
             f_out.write(line)
 
