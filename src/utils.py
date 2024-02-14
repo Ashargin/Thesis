@@ -200,9 +200,7 @@ def run_preds(
             compression = (
                 1 / ((pd.Series(frag_attrib).value_counts() / len(seq)) ** 2).sum()
             )
-            line = (
-                '{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression}\n'
-            )
+            line = f'{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression}\n'
         else:
             line = f'{name.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
         with open(out_path, "a") as f_out:
