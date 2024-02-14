@@ -37,13 +37,14 @@ model_name = (
 )
 run_preds(
     divide_predict,
-    Path(f"resources/divide_{model_name}_1000_sequencewise.csv"),
+    Path(f"resources/divide_oracle_1000_sequencewise.csv"),
     in_filename="test_sequencewise",
     kwargs={
         "max_length": 1000,
-        "cut_model": model,
+        "cut_model": None,
         "predict_fnc": None,
-        "max_motifs": max_motifs,
+        "max_motifs": None,
     },
+    use_structs=True,
     evaluate_cutting_model=True,
 )
