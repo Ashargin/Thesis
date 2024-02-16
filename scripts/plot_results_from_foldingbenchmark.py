@@ -9,7 +9,7 @@ import seaborn as sns
 
 from src.utils import struct_to_pairs
 
-path_preds = Path("C:/Work/FoldingBenchmarkMAS/predictions/sce")
+path_preds = Path("C:/Work/FoldingBenchmarkMAS/predictions/lncRNAs")
 path_data = Path("C:/Work/FoldingBenchmarkMAS/data")
 
 # Read predictions
@@ -107,12 +107,16 @@ df_res = get_scores(df).fillna(0.0)
 models_ranked = df_res.mean().sort_values(ascending=False)
 df_res = df_res.loc[:, models_ranked.index]
 
-# ax = sns.boxplot(data=pd.melt(df_res), x='model', y='value')
-# ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="center")
-# for i, model in enumerate(df_res.columns):
-#     plt.text(i-0.25, 1., str(round(df_res.loc[:, model].mean(), 2)))
-# plt.ylim([0, 1.05])
-# plt.show()
+plt.figure(figsize=(20, 10))
+ax = sns.boxplot(data=pd.melt(df_res), x="model", y="value")
+ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="center")
+for i, model in enumerate(df_res.columns):
+    plt.text(i - 0.25, 1.0, str(round(df_res.loc[:, model].mean(), 2)))
+plt.ylim([0, 1.05])
+plt.ylabel("F-score")
+plt.title("F-score on the curated lncRNAs dataset")
+plt.savefig("Test", bbox_inches="tight")
+plt.show()
 
 
 def round_lengths(df, n1=200, n2=400):
