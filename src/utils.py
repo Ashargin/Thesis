@@ -176,7 +176,8 @@ def run_preds(
                 skip_counter += compute_frac - 1
         if evaluate_cutting_model:
             frags = [p[0] for p in pred]
-            pairs = struct_to_pairs(struct)
+            struct_no_pseudoknots = re.sub("[^\(\)\.]", ".", struct)
+            pairs = struct_to_pairs(struct_no_pseudoknots)
             frag_attrib = np.zeros(
                 (
                     len(
@@ -246,7 +247,7 @@ def get_scores(y, y_hat):
     return this_ppv, this_sen, this_fscore, this_mcc
 
 
-def get_scores_df(df_preds, name=""):
+def get_scores_df(df_preds):
     # Read data
     if not isinstance(
         df_preds, pd.core.frame.DataFrame
@@ -283,7 +284,6 @@ def get_scores_df(df_preds, name=""):
             "mcc": mcc,
             "time": df_preds.ttot,
             "memory": df_preds.memory,
-            "model": name,
         }
     )
 
