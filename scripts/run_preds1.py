@@ -13,7 +13,7 @@ from src.predict import (
 from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
-model_filename = "CNN1D_sequencewise_0motifs"
+model_filename = "CNN1D_sequencewise_100motifs256dilINV"
 max_motifs = (
     293
     if "motifs" not in model_filename
@@ -37,14 +37,13 @@ model_name = (
 )
 run_preds(
     divide_predict,
-    Path(f"resources/divide_oracle_1000_sequencewise.csv"),
+    Path(f"resources/divide_{model_name}_1000_sequencewise.csv"),
     in_filename="test_sequencewise",
     kwargs={
         "max_length": 1000,
-        "cut_model": None,
+        "cut_model": model,
         "predict_fnc": None,
-        "max_motifs": None,
+        "max_motifs": max_motifs,
     },
-    use_structs=True,
     evaluate_cutting_model=True,
 )

@@ -13,7 +13,7 @@ from src.predict import (
 from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
-model_filename = "CNN1D_sequencewise_10motifs"
+model_filename = "CNN1D_sequencewise_200motifs128dilINV"
 max_motifs = (
     293
     if "motifs" not in model_filename
