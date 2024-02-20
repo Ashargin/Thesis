@@ -199,7 +199,7 @@ def run_preds(
                         n_breaks += 1
             break_rate = n_breaks / n_pairs
             compression = (
-                1 / ((pd.Series(frag_attrib).value_counts() / len(seq)) ** 2).sum()
+                1 - ((pd.Series(frag_attrib).value_counts() / len(seq)) ** 2).sum()
             )
             line = f'{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression}\n'
         else:
@@ -247,12 +247,9 @@ def get_scores(y, y_hat):
     return this_ppv, this_sen, this_fscore, this_mcc
 
 
-def get_scores_df(df_preds):
+def get_scores_df(path_in):
     # Read data
-    if not isinstance(
-        df_preds, pd.core.frame.DataFrame
-    ):  # if a path is given instead of a dataframe
-        df_preds = pd.read_csv(df_preds)
+    df_preds = pd.read_csv(path_in)
     n = df_preds.shape[0]
 
     # Compute scores
@@ -286,27 +283,43 @@ def get_scores_df(df_preds):
             "memory": df_preds.memory,
         }
     )
+    cutting_metric_filename = (
+        path_in.name.replace("_mx", "")
+        .replace("_rnaf", "")
+        .replace("_lf", "")
+        .replace("_sub", "")
+        .replace("_ens", "")
+        .replace(".csv", "_cuttingmetrics.csv")
+    )
+    cutting_metric_path = (
+        path_in.parent.parent / "cutting_metrics" / cutting_metric_filename
+    )
+    if "sequencewise" in path_in.name and cutting_metric_path.exists():
+        df_cutting_metrics = pd.read_csv(cutting_metric_path)
+        assert np.all(data.rna_name == df_cutting_metrics.rna_name)
+        data["cut_break_rate"] = df_cutting_metrics.break_rate
+        data["cut_compression"] = df_cutting_metrics.compression
 
     data.time = data.time.astype(float)
     data.memory = data.memory.astype(float)
     data = data.iloc[~skipped, :]
 
-    if n < 10:
-        return data
-    ax = sns.kdeplot(data=data, x="length")
-    x, y = ax.get_lines()[-1].get_data()
-
-    def inverse_density(length):
-        upper_x_bound = (x <= length).argmin()
-        lower_x, upper_x = x[upper_x_bound - 1], x[upper_x_bound]
-        lower_y, upper_y = y[upper_x_bound - 1], y[upper_x_bound]
-        perc = (length - lower_x) / (upper_x - lower_x)
-        val = lower_y + perc * (upper_y - lower_y)
-        return 1 / val
-
-    data["weight"] = data.length.apply(inverse_density)
-    data.weight /= data.weight.mean()
-    plt.close()
+    # if n < 10:
+    #     return data
+    # ax = sns.kdeplot(data=data, x="length")
+    # x, y = ax.get_lines()[-1].get_data()
+    #
+    # def inverse_density(length):
+    #     upper_x_bound = (x <= length).argmin()
+    #     lower_x, upper_x = x[upper_x_bound - 1], x[upper_x_bound]
+    #     lower_y, upper_y = y[upper_x_bound - 1], y[upper_x_bound]
+    #     perc = (length - lower_x) / (upper_x - lower_x)
+    #     val = lower_y + perc * (upper_y - lower_y)
+    #     return 1 / val
+    #
+    # data["weight"] = data.length.apply(inverse_density)
+    # data.weight /= data.weight.mean()
+    # plt.close()
 
     return data
 

@@ -9,7 +9,7 @@ import seaborn as sns
 from src.utils import get_scores_df
 
 ## Score predictions
-results_path = Path("resources/results/cutting_metrics")
+results_path = Path("resources/results/sequencewise")
 files = os.listdir(results_path)
 
 
@@ -58,27 +58,19 @@ def filename_to_model_name(filename):
         )
         model = f"{model_transform[parts[0]]} {cut_model} {stop}"
         if len(parts) > 3:
-            model = model + f" + {parts[3]}"
+            model = model + f" + {model_transform[parts[3]]}"
     model = model + suffix
 
     return model
 
 
-scores = (
-    [
-        get_scores_df(results_path / f).assign(model=filename_to_model_name(f))
-        for f in files
-    ]
-    if results_path.name != "cutting_metrics"
-    else [
-        pd.read_csv(results_path / f).assign(model=filename_to_model_name(f))
-        for f in files
-    ]
-)
+scores = [
+    get_scores_df(results_path / f).assign(model=filename_to_model_name(f))
+    for f in files
+]
 
 data_scores = pd.concat(scores).reset_index(drop=True)
-if "length" not in data_scores.columns:
-    data_scores["length"] = data_scores.seq.apply(len)
+data_scores.cut_compression = data_scores.cut_compression.apply(lambda x: 1 - 1 / x)
 
 
 def plot(data, yvar):
@@ -104,79 +96,78 @@ def plot(data, yvar):
 
 
 def plot_all(data):
-    if results_path.name != "cutting_metrics":
-        plot(data, "fscore")
+    plot(data, "fscore")
+    plt.ylim([0, 1])
+    # plot(data, "mcc")
+    plot(data, "time")
+    plt.ylim([0, 200])
+    plot(data, "memory")
+    if data.cut_break_rate.isna().sum() == 0:
+        plot(data, "cut_break_rate")
         plt.ylim([0, 1])
-        # plot(data, "mcc")
-        plot(data, "time")
-        plt.ylim([0, 200])
-        plot(data, "memory")
-    else:
-        plot(data, "break_rate")
-        plt.ylim([0, 1])
-        plot(data, "compression")
+        plot(data, "cut_compression")
     plt.show()
 
 
 # Sequencewise
-# data = pd.concat(
-#     [
-#         data_scores[data_scores.model == x]
-#         for x in [
-#             # 'DivideFold CNN (limited to 1 steps) + MXfold2',
-#             # 'DivideFold CNN (limited to 2 steps) + MXfold2',
-#             # 'DivideFold CNN (limited to 3 steps) + MXfold2',
-#             # 'DivideFold CNN (limited to 4 steps) + MXfold2',
-#             # 'DivideFold CNN (limited to 5 steps) + MXfold2',
-#             # "DivideFold CNN (until 200 nc.) + MXfold2",
-#             # "DivideFold CNN (until 400 nc.) + MXfold2",
-#             # "DivideFold CNN (until 600 nc.) + MXfold2",
-#             # "DivideFold CNN (until 800 nc.) + MXfold2",
-#             # 'DivideFold CNN, 0 motifs, (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 10 motifs, (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 25 motifs, (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 100 motifs, (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 200 motifs, (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 293 motifs, (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 50 motifs, 1 dilation (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 50 motifs, 2 dilation (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 50 motifs, 4 dilation (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 50 motifs, 8 dilation (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN, 50 motifs, 16 dilation (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 1 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 2 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 4 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 8 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 16 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 32 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 64 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 128 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 256 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 512 dilation reversed (until 1000 nc.) + MXfold2',
-#             'DivideFold CNN, 50 motifs, 1024 dilation reversed (until 1000 nc.) + MXfold2',
-#             # 'DivideFold CNN (until 1000 nc.) + LinearFold',
-#             # 'DivideFold CNN (until 1000 nc.) + RNAfold',
-#             # 'DivideFold CNN (until 1000 nc.) + RNAsubopt',
-#             # 'DivideFold CNN (until 1000 nc.) + Ensemble',
-#             # 'DivideFold MLP (until 1000 nc.) + MXfold2',
-#             # 'DivideFold MLP (until 1000 nc.) + LinearFold',
-#             # 'DivideFold MLP (until 1000 nc.) + RNAfold',
-#             # 'DivideFold MLP (until 1000 nc.) + RNAsubopt',
-#             # 'DivideFold MLP (until 1000 nc.) + Ensemble',
-#             # 'DivideFold Oracle (until 1000 nc.) + RNAfold',
-#             # 'DivideFold Oracle (until 1000 nc.) + LinearFold',
-#             # 'DivideFold Oracle (until 1000 nc.) + RNAsubopt',
-#             # 'DivideFold Oracle (until 1000 nc.) + Ensemble',
-#             # "DivideFold CNN (until 1000 nc.) + MXfold2",
-#             # 'DivideFold Oracle (until 1000 nc.) + MXfold2',
-#             # 'RNAfold',
-#             # 'LinearFold',
-#             # 'MXfold2',
-#             # 'ProbKnot',
-#         ]
-#     ]
-# )
+data = pd.concat(
+    [
+        data_scores[data_scores.model == x]
+        for x in [
+            # 'DivideFold CNN (limited to 1 steps) + MXfold2',
+            # 'DivideFold CNN (limited to 2 steps) + MXfold2',
+            # 'DivideFold CNN (limited to 3 steps) + MXfold2',
+            # 'DivideFold CNN (limited to 4 steps) + MXfold2',
+            # 'DivideFold CNN (limited to 5 steps) + MXfold2',
+            # "DivideFold CNN (until 200 nc.) + MXfold2",
+            # "DivideFold CNN (until 400 nc.) + MXfold2",
+            # "DivideFold CNN (until 600 nc.) + MXfold2",
+            # "DivideFold CNN (until 800 nc.) + MXfold2",
+            "DivideFold CNN (until 1000 nc.) + MXfold2",
+            # 'DivideFold CNN, 0 motifs, (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 10 motifs, (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 25 motifs, (until 1000 nc.) + MXfold2',
+            "DivideFold CNN, 50 motifs (until 1000 nc.) + MXfold2",
+            # 'DivideFold CNN, 50 motifs, 1 dilation (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 2 dilation (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 4 dilation (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 8 dilation (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 16 dilation (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 1 dilation reversed (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 2 dilation reversed (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 4 dilation reversed (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 8 dilation reversed (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 16 dilation reversed (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 32 dilation reversed (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN, 50 motifs, 64 dilation reversed (until 1000 nc.) + MXfold2',
+            "DivideFold CNN, 50 motifs, 128 dilation reversed (until 1000 nc.) + MXfold2",
+            "DivideFold CNN, 50 motifs, 256 dilation reversed (until 1000 nc.) + MXfold2",
+            "DivideFold CNN, 50 motifs, 512 dilation reversed (until 1000 nc.) + MXfold2",
+            # 'DivideFold CNN, 50 motifs, 1024 dilation reversed (until 1000 nc.) + MXfold2',
+            "DivideFold CNN, 100 motifs, (until 1000 nc.) + MXfold2",
+            "DivideFold CNN, 200 motifs, (until 1000 nc.) + MXfold2",
+            # 'DivideFold CNN, 293 motifs, (until 1000 nc.) + MXfold2',
+            # 'DivideFold CNN (until 1000 nc.) + LinearFold',
+            # 'DivideFold CNN (until 1000 nc.) + RNAfold',
+            # 'DivideFold CNN (until 1000 nc.) + RNAsubopt',
+            # 'DivideFold CNN (until 1000 nc.) + Ensemble',
+            "DivideFold MLP (until 1000 nc.) + MXfold2",
+            # 'DivideFold MLP (until 1000 nc.) + LinearFold',
+            # 'DivideFold MLP (until 1000 nc.) + RNAfold',
+            # 'DivideFold MLP (until 1000 nc.) + RNAsubopt',
+            # 'DivideFold MLP (until 1000 nc.) + Ensemble',
+            # 'DivideFold Oracle (until 1000 nc.) + RNAfold',
+            # 'DivideFold Oracle (until 1000 nc.) + LinearFold',
+            # 'DivideFold Oracle (until 1000 nc.) + RNAsubopt',
+            # 'DivideFold Oracle (until 1000 nc.) + Ensemble',
+            "DivideFold Oracle (until 1000 nc.) + MXfold2",
+            # 'RNAfold',
+            # 'LinearFold',
+            # 'MXfold2',
+            # 'ProbKnot',
+        ]
+    ]
+)
 
 # Familywise
 # data = pd.concat(
@@ -235,41 +226,6 @@ def plot_all(data):
 #     ]
 # )
 
-# Cutting metrics
-data = pd.concat(
-    [
-        data_scores[data_scores.model == x]
-        for x in [
-            "DivideFold CNN (until 1000 nc.)",
-            "DivideFold CNN, 0 motifs (until 1000 nc.)",
-            "DivideFold CNN, 10 motifs (until 1000 nc.)",
-            "DivideFold CNN, 25 motifs (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 1 dilation (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 2 dilation (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 4 dilation (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 8 dilation (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 16 dilation (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 1 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 2 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 4 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 8 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 16 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 32 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 64 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 128 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 256 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 512 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 50 motifs, 1024 dilation reversed (until 1000 nc.)",
-            "DivideFold CNN, 100 motifs (until 1000 nc.)",
-            "DivideFold CNN, 200 motifs (until 1000 nc.)",
-            "DivideFold CNN, 293 motifs (until 1000 nc.)",
-            "DivideFold MLP (until 1000 nc.)",
-            "DivideFold Oracle (until 1000 nc.)",
-        ]
-    ]
-)
-
 
 def clean_data(data):
     data = data.copy()
@@ -283,3 +239,18 @@ def clean_data(data):
 
 plot_all(clean_data(data))
 plt.show()
+
+df = pd.DataFrame(
+    {
+        "cut_break_rate": data[data.length >= 1000]
+        .groupby("model")
+        .cut_break_rate.mean(),
+        "cut_compression": data[data.length >= 1000]
+        .groupby("model")
+        .cut_compression.mean(),
+        "fscore": data[data.length >= 1000].groupby("model").fscore.mean(),
+    }
+).sort_values("cut_break_rate")
+df.cut_break_rate = df.cut_break_rate.apply(lambda x: str(round(100 * x, 1)) + "%")
+df.cut_compression = df.cut_compression.apply(lambda x: str(round(100 * x)) + "%")
+df.fscore = df.fscore.apply(lambda x: round(x, 2))

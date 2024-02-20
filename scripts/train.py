@@ -11,15 +11,17 @@ from pathlib import Path
 
 from src.models.mlp import MLP
 from src.models.cnn_1d import CNN1D
+from src.models.bilstm import BiLSTM
 from src.models.loss import inv_exp_distance_to_cut_loss
 
 # from src.utils import seq2kmer
 
 MAX_MOTIFS = 50
-MAX_DIL = 1024
+MAX_DIL = 512
 
 # Load model
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
+# model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
 model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
@@ -123,9 +125,7 @@ history = model.fit(
     validation_steps=305,
 )
 
-model.save(
-    Path(f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV")
-)
+model.save(Path(f"resources/models/BiLSTM_sequencewise_{MAX_MOTIFS}motifs"))
 
 import matplotlib.pyplot as plt
 
@@ -139,45 +139,43 @@ plt.xlim(([0, 100]))
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Training loss curve (sequence-wise train / test split)")
-plt.savefig(
-    rf"resources/png/training_curve_cnn_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV.png"
-)
+plt.savefig(rf"resources/png/training_curve_bilstm_sequencewise_{MAX_MOTIFS}motifs.png")
 plt.show()
 
-my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
-my_model.compile(
-    optimizer="adam",
-    loss=inv_exp_distance_to_cut_loss,
-    metrics=["accuracy"],
-    run_eagerly=True,
-)
-test_datagen = motif_cache_data_generator(Path("resources/data/temptest"))
-
-
-def plot_cut_probabilities():
-    seq_mat, cuts_mat = next(test_datagen)
-    preds = my_model(seq_mat).numpy().ravel()
-    cuts_mat = cuts_mat.ravel().astype(int)
-
-    X = np.arange(len(preds)) + 1
-    for i, x in enumerate(X[cuts_mat]):
-        plt.plot(
-            [x, x],
-            [0, 1],
-            color="black",
-            linewidth=1.5,
-            label="True cut points" if i == 0 else "",
-        )
-    plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
-
-    peaks = signal.find_peaks(preds, height=0.28, distance=12)[0]
-    plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
-
-    plt.xlim([X[0], X[-1]])
-    plt.ylim([0, 1])
-
-    plt.title(
-        "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
-    )
-    plt.legend()
-    plt.show()
+# my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
+# my_model.compile(
+#     optimizer="adam",
+#     loss=inv_exp_distance_to_cut_loss,
+#     metrics=["accuracy"],
+#     run_eagerly=True,
+# )
+# test_datagen = motif_cache_data_generator(Path("resources/data/temptest"))
+#
+#
+# def plot_cut_probabilities():
+#     seq_mat, cuts_mat = next(test_datagen)
+#     preds = my_model(seq_mat).numpy().ravel()
+#     cuts_mat = cuts_mat.ravel().astype(int)
+#
+#     X = np.arange(len(preds)) + 1
+#     for i, x in enumerate(X[cuts_mat]):
+#         plt.plot(
+#             [x, x],
+#             [0, 1],
+#             color="black",
+#             linewidth=1.5,
+#             label="True cut points" if i == 0 else "",
+#         )
+#     plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
+#
+#     peaks = signal.find_peaks(preds, height=0.28, distance=12)[0]
+#     plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
+#
+#     plt.xlim([X[0], X[-1]])
+#     plt.ylim([0, 1])
+#
+#     plt.title(
+#         "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
+#     )
+#     plt.legend()
+#     plt.show()
