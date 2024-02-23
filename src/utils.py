@@ -71,6 +71,31 @@ def seq2kmer(seq, k):
     return kmers
 
 
+def apply_mutation(seq, struct):
+    struct_no_pk = re.sub("[^\(\)\.]", ".", struct)
+    pairs = struct_to_pairs(struct_no_pk)
+    mutations = [
+        ("A", "U"),
+        ("U", "A"),  # Watson-Crick
+        ("G", "C"),
+        ("C", "G"),  # Watson-Crick
+        ("G", "U"),
+        ("U", "G"),  # Wobble
+    ]
+    mutated_seq = ["" for _ in range(len(seq))]
+    for i, j in enumerate(pairs):
+        j -= 1
+        if j < 0:
+            mutated_seq[i] = seq[i]
+        elif i < j:
+            mut_1, mut_2 = mutations[np.random.randint(len(mutations))]
+            mutated_seq[i] = mut_1
+            mutated_seq[j] = mut_2
+    mutated_seq = "".join(mutated_seq)
+
+    return mutated_seq, struct
+
+
 def eval_energy(seq, struct):
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_rnaeval_in_{suffix}.txt"
