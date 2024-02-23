@@ -13,7 +13,7 @@ from src.predict import (
 from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
-model_filename = "CNN1D_sequencewise_50motifs128dilINV"
+model_filename = "CNN1D_sequencewise_200motifs256dilINV_augmented"
 max_motifs = (
     293
     if "motifs" not in model_filename
@@ -34,6 +34,8 @@ model_name = (
     .replace("sequencewise", "")
     .replace("CNN1D", "cnn")
     .replace("MLP", "mlp")
+    .replace("BiLSTM", "bilstm")
+    .replace("EPOCH10", "")
 )
 run_preds(
     divide_predict,
