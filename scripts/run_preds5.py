@@ -13,7 +13,7 @@ from src.predict import (
 from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
-model_filename = "BiLSTM_sequencewise_200motifs_EPOCH10"
+model_filename = "CNN1D_sequencewise_50motifs512dilINV"
 max_motifs = (
     293
     if "motifs" not in model_filename
@@ -39,7 +39,7 @@ model_name = (
 )
 run_preds(
     divide_predict,
-    Path(f"resources/divide_{model_name}_1000_sequencewise.csv"),
+    Path(f"resources/divide_{model_name}200gap_1000_sequencewise.csv"),
     in_filename="test_sequencewise",
     kwargs={
         "max_length": 1000,

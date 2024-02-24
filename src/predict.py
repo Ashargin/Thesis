@@ -402,7 +402,7 @@ def oracle_get_cuts(struct):
 
 
 def divide_get_cuts(
-    seq, min_height=0.28, min_distance=12, cut_model=default_cut_model, max_motifs=None
+    seq, min_height=0.28, min_distance=200, cut_model=default_cut_model, max_motifs=None
 ):
     seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
