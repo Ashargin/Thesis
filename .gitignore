@@ -6,6 +6,7 @@ carnaval_dataset
 resources/results
 resources/data_splits
 resources/data_structures/train*
+resources/models_old
 rnapar_raw_data
 shaker_data
 mxfold2_data

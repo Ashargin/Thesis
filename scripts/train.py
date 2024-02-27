@@ -79,7 +79,9 @@ def motif_cache_data_generator(
             seq, struct, cuts = row.seq, row.struct, row.cuts
 
             if data_augment_mutation:
-                seq, struct = apply_mutation(seq, struct)
+                seq, struct = apply_mutation(
+                    seq, struct, mutation_proba=np.random.random()
+                )
 
             seq_mat = format_data(seq, max_motifs=max_motifs)
             cuts_mat = np.array([float(c) for c in cuts[1:-1].split(" ")])
