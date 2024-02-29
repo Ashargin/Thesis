@@ -433,6 +433,9 @@ def divide_get_cuts(
     outer = True
 
     def fuse_consecutive_peaks(peak_array):
+        if len(peak_array) <= 2:
+            return peak_array
+
         for n_inner_frags in range(1, len(peak_array)):
             bounds = []
             losses = []
@@ -445,7 +448,7 @@ def divide_get_cuts(
                         inner_cuts,
                         [peak_array[-1]],
                     ]
-                )
+                ).astype(int)
                 if not np.all(this_bounds[1:] - this_bounds[:-1] <= fuse_to):
                     continue
 
@@ -467,7 +470,7 @@ def divide_get_cuts(
         large_gaps_idx = np.concatenate(
             [
                 [0],
-                np.argwhere(peak_array[1:] - peak_array[:-1] > fuse_to)[0] + 1,
+                np.argwhere(peak_array[1:] - peak_array[:-1] > fuse_to).ravel() + 1,
                 [len(peak_array)],
             ]
         )
