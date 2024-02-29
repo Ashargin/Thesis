@@ -499,6 +499,7 @@ def divide_get_fragment_ranges_preds(
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
     max_motifs=None,
+    fuse_to=None,
     struct="",
     evaluate_cutting_model=False,
 ):
@@ -516,7 +517,9 @@ def divide_get_fragment_ranges_preds(
     if struct:
         cuts, outer = oracle_get_cuts(struct)
     else:
-        cuts, outer = divide_get_cuts(seq, cut_model=cut_model, max_motifs=max_motifs)
+        cuts, outer = divide_get_cuts(
+            seq, cut_model=cut_model, max_motifs=max_motifs, fuse_to=fuse_to
+        )
 
     # Cut sequence into subsequences
     random_cuts = [int(len(seq) / 3), int(len(seq) * 2 / 3)]
@@ -553,6 +556,7 @@ def divide_get_fragment_ranges_preds(
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
+                fuse_to=fuse_to,
                 struct=substruct,
                 evaluate_cutting_model=evaluate_cutting_model,
             )
@@ -564,6 +568,7 @@ def divide_get_fragment_ranges_preds(
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
+                fuse_to=fuse_to,
                 evaluate_cutting_model=evaluate_cutting_model,
             )
 
@@ -590,6 +595,7 @@ def divide_get_fragment_ranges_preds(
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
+                fuse_to=fuse_to,
                 struct=substruct,
                 evaluate_cutting_model=evaluate_cutting_model,
             )
@@ -601,6 +607,7 @@ def divide_get_fragment_ranges_preds(
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
+                fuse_to=fuse_to,
                 evaluate_cutting_model=evaluate_cutting_model,
             )
 
@@ -643,6 +650,7 @@ def divide_predict(
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
     max_motifs=200,
+    fuse_to=None,
     struct="",
     struct_to_print_fscores="",
     evaluate_cutting_model=False,
@@ -656,6 +664,7 @@ def divide_predict(
         cut_model=cut_model,
         predict_fnc=predict_fnc,
         max_motifs=max_motifs,
+        fuse_to=fuse_to,
         struct=struct,
         evaluate_cutting_model=evaluate_cutting_model,
     )
