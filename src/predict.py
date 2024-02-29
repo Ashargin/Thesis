@@ -8,6 +8,7 @@ import re
 import numpy as np
 from scipy import signal
 import pickle
+import itertools
 
 import torch
 from torch.utils.data import DataLoader
@@ -402,7 +403,12 @@ def oracle_get_cuts(struct):
 
 
 def divide_get_cuts(
-    seq, min_height=0.28, min_distance=12, cut_model=default_cut_model, max_motifs=None
+    seq,
+    min_height=0.28,
+    min_distance=12,
+    cut_model=default_cut_model,
+    max_motifs=None,
+    fuse_to=None,
 ):
     seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
@@ -410,26 +416,72 @@ def divide_get_cuts(
     min_height = min(min_height, max(cuts))
 
     def get_peaks(min_height):
-        peaks = signal.find_peaks(cuts, height=min_height, distance=min_distance)[
-            0
-        ].tolist()
-        if peaks and (peaks[0] == 0):
+        peaks = signal.find_peaks(cuts, height=min_height, distance=min_distance)[0]
+        if peaks.size > 0 and (peaks[0] == 0):
             peaks = peaks[1:]
-        if peaks and (peaks[-1] == len(seq)):
+        if peaks.size > 0 and (peaks[-1] == len(seq)):
             peaks = peaks[:-1]
         return peaks
 
     peaks = get_peaks(min_height)
-    i = 0
     while len(peaks) < 2:
         if min_height < 0.01:
-            peaks = []
+            peaks = np.zeros((0,))
             break
         min_height *= 0.9
         peaks = get_peaks(min_height)
     outer = True
 
-    return peaks, outer
+    def fuse_consecutive_peaks(peak_array):
+        for n_inner_frags in range(1, len(peak_array)):
+            bounds = []
+            losses = []
+            for inner_cuts in itertools.combinations(
+                peak_array[1:-1], n_inner_frags - 1
+            ):
+                this_bounds = np.concatenate(
+                    [
+                        [peak_array[0]],
+                        inner_cuts,
+                        [peak_array[-1]],
+                    ]
+                )
+                if not np.all(this_bounds[1:] - this_bounds[:-1] <= fuse_to):
+                    continue
+
+                this_loss = np.sum(
+                    (
+                        (this_bounds[1:] - this_bounds[:-1])
+                        / (peak_array[-1] - peak_array[0])
+                    )
+                    ** 2
+                )
+                bounds.append(this_bounds)
+                losses.append(this_loss)
+
+            if bounds:
+                best_bounds = bounds[np.argmin(losses)]
+                return best_bounds
+
+    def fuse_peaks(peak_array):
+        large_gaps_idx = np.concatenate(
+            [
+                [0],
+                np.argwhere(peak_array[1:] - peak_array[:-1] > fuse_to)[0] + 1,
+                [len(peak_array)],
+            ]
+        )
+        fusables = [
+            peak_array[start:end]
+            for start, end in zip(large_gaps_idx[:-1], large_gaps_idx[1:])
+        ]
+        fused = [fuse_consecutive_peaks(peak_subarray) for peak_subarray in fusables]
+        return np.concatenate(fused)
+
+    if peaks.size > 0 and fuse_to is not None:
+        peaks = fuse_peaks(peaks)
+
+    return peaks.tolist(), outer
 
 
 def linearfold_get_cuts(seq):
