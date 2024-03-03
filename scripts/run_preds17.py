@@ -16,8 +16,8 @@ from src.utils import run_preds
 
 # Settings
 model_filename = "CNN1D_sequencewise_200motifs256dilINV"
-max_length = 100
-fuse_to = None
+max_length = 1000
+fuse_to = 550
 
 # Load model
 model = keras.models.load_model(
