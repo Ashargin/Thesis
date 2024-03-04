@@ -408,7 +408,7 @@ def divide_get_cuts(
     min_distance=12,
     cut_model=default_cut_model,
     max_motifs=None,
-    fuse_to=None,
+    fuse_to=400,
 ):
     seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
@@ -499,7 +499,7 @@ def divide_get_fragment_ranges_preds(
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
     max_motifs=None,
-    fuse_to=None,
+    fuse_to=400,
     struct="",
     evaluate_cutting_model=False,
 ):
@@ -650,7 +650,7 @@ def divide_predict(
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
     max_motifs=200,
-    fuse_to=None,
+    fuse_to=400,
     struct="",
     struct_to_print_fscores="",
     evaluate_cutting_model=False,

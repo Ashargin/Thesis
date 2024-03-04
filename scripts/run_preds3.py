@@ -15,9 +15,9 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
 # Settings
-model_filename = "CNN1D_sequencewise_200motifs512dilINV"
-max_length = 1000
-fuse_to = 250
+model_filename = "CNN1D_sequencewise_200motifs256dilINV"
+max_length = 600
+fuse_to = 400
 
 # Load model
 model = keras.models.load_model(
