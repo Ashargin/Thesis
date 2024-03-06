@@ -496,6 +496,7 @@ def divide_get_fragment_ranges_preds(
     seq,
     max_length=1000,
     max_steps=None,
+    min_steps=0,
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
     max_motifs=None,
@@ -505,7 +506,7 @@ def divide_get_fragment_ranges_preds(
 ):
     tstart = time.time()
 
-    if len(seq) <= max_length or max_steps == 0:
+    if max_steps == 0 or len(seq) <= max_length and min_steps <= 0:
         pred, a, b, ttot, memory = (
             predict_fnc(seq)
             if not evaluate_cutting_model
@@ -543,6 +544,7 @@ def divide_get_fragment_ranges_preds(
     frag_preds = []
     memories = []
     max_steps = max_steps - 1 if max_steps is not None else None
+    min_steps -= 1
     for left_b, right_b in inner_bounds:
         subseq = seq[left_b:right_b]
 
@@ -553,6 +555,7 @@ def divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
+                min_steps=min_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
@@ -565,6 +568,7 @@ def divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
+                min_steps=min_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
@@ -592,6 +596,7 @@ def divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
+                min_steps=min_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
@@ -604,6 +609,7 @@ def divide_get_fragment_ranges_preds(
                 subseq,
                 max_length=max_length,
                 max_steps=max_steps,
+                min_steps=min_steps,
                 cut_model=cut_model,
                 predict_fnc=predict_fnc,
                 max_motifs=max_motifs,
@@ -646,6 +652,7 @@ def divide_predict(
     seq,
     max_length=1000,
     max_steps=None,
+    min_steps=0,
     multipred_kmax=20,
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
@@ -657,10 +664,14 @@ def divide_predict(
 ):
     tstart = time.time()
 
+    if max_steps is not None and max_steps < min_steps:
+        raise Warning("max_steps must be greater than min_steps.")
+
     frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
         seq,
         max_length=max_length,
         max_steps=max_steps,
+        min_steps=min_steps,
         cut_model=cut_model,
         predict_fnc=predict_fnc,
         max_motifs=max_motifs,
