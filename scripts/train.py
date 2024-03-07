@@ -80,7 +80,7 @@ def motif_cache_data_generator(
 
             if data_augment_mutation:
                 seq, struct = apply_mutation(
-                    seq, struct, mutation_proba=np.random.random()
+                    seq, struct, mutation_proba=0.1 * np.random.random()
                 )
 
             seq_mat = format_data(seq, max_motifs=max_motifs)
