@@ -506,7 +506,7 @@ def divide_get_fragment_ranges_preds(
 ):
     tstart = time.time()
 
-    if max_steps <= 0 or len(seq) <= max_length and min_steps <= 0:
+    if max_steps == 0 or len(seq) <= max_length and min_steps <= 0:
         pred, a, b, ttot, memory = (
             predict_fnc(seq)
             if not evaluate_cutting_model
