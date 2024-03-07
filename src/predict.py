@@ -408,7 +408,7 @@ def divide_get_cuts(
     min_distance=12,
     cut_model=default_cut_model,
     max_motifs=None,
-    fuse_to=400,
+    fuse_to=None,
 ):
     seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
@@ -500,13 +500,13 @@ def divide_get_fragment_ranges_preds(
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
     max_motifs=None,
-    fuse_to=400,
+    fuse_to=None,
     struct="",
     evaluate_cutting_model=False,
 ):
     tstart = time.time()
 
-    if max_steps == 0 or len(seq) <= max_length and min_steps <= 0:
+    if max_steps <= 0 or len(seq) <= max_length and min_steps <= 0:
         pred, a, b, ttot, memory = (
             predict_fnc(seq)
             if not evaluate_cutting_model
@@ -650,19 +650,28 @@ def divide_get_fragment_ranges_preds(
 
 def divide_predict(
     seq,
-    max_length=1000,
+    max_length=None,
     max_steps=None,
-    min_steps=0,
+    min_steps=None,
     multipred_kmax=20,
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
     max_motifs=200,
-    fuse_to=400,
+    fuse_to=None,
     struct="",
     struct_to_print_fscores="",
     evaluate_cutting_model=False,
 ):
     tstart = time.time()
+
+    if min_steps is None:
+        min_steps = 1 if len(seq) >= 400 else 0
+        if max_length is not None:
+            min_steps = 0
+        if max_steps is not None:
+            min_steps = min(min_steps, max_steps)
+    if max_length is None:
+        max_length = 2000 if len(seq) < 1300 or len(seq) >= 1600 else 200
 
     if max_steps is not None and max_steps < min_steps:
         raise Warning("max_steps must be greater than min_steps.")
