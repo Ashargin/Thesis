@@ -30,7 +30,8 @@ from src.utils import format_data, eval_energy, get_scores
 from src.models.loss import inv_exp_distance_to_cut_loss
 
 default_cut_model = keras.models.load_model(
-    Path("resources/models/CNN1D_sequencewise_200motifs256dilINV"), compile=False
+    Path("resources/models/CNN1D_sequencewise_200motifs256dilINV_augmented"),
+    compile=False,
 )
 default_cut_model.compile(
     optimizer="adam",
