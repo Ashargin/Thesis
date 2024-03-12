@@ -317,6 +317,9 @@ def ensemble_predict(seq):
 
 
 def oracle_get_cuts(struct):
+    if len(struct) <= 3:
+        return [], True
+
     # Determine depth levels
     struct = re.sub("[^\(\)\.]", ".", struct)
     depths = []

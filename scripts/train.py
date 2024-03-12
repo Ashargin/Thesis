@@ -20,7 +20,6 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 MAX_MOTIFS = 200
 MAX_DIL = 512
 DATA_AUGMENT_MUTATION = True
-FROM_CACHE = not DATA_AUGMENT_MUTATION
 
 # Load model
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
@@ -38,7 +37,7 @@ def motif_cache_data_generator(
     path_in,
     max_motifs=MAX_MOTIFS,
     max_len=None,
-    from_cache=FROM_CACHE,
+    from_cache=False,
     data_augment_mutation=DATA_AUGMENT_MUTATION,
 ):
     files = os.listdir(path_in)
