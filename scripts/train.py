@@ -18,7 +18,7 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 # from src.utils import seq2kmer
 
 MAX_MOTIFS = 200
-MAX_DIL = 512
+MAX_DIL = 256
 DATA_AUGMENT_MUTATION = True
 
 # Load model
@@ -36,17 +36,20 @@ model.compile(
 def motif_cache_data_generator(
     path_in,
     max_motifs=MAX_MOTIFS,
+    min_len=None,
     max_len=None,
     from_cache=False,
     data_augment_mutation=DATA_AUGMENT_MUTATION,
 ):
-    files = os.listdir(path_in)
-    np.random.shuffle(files)
-    if not from_cache:
+    files = None
+    df_in = None
+    if from_cache:
+        files = os.listdir(path_in)
+        np.random.shuffle(files)
+    else:
         path_df_in = Path("resources/data_splits") / (path_in.name + ".csv")
         df_in = pd.read_csv(path_df_in, index_col=0)
-        idx = [int(f.split(".pkl")[0]) for f in files]
-        df_in = df_in.loc[idx, :]
+        df_in = df_in.sample(frac=1.0)
         assert df_in.isna().sum().sum() == 0
 
     df_motifs = pd.read_csv(Path("resources/motif_seqs.csv"), index_col=0)
@@ -74,7 +77,7 @@ def motif_cache_data_generator(
             cuts_mat = np.where(cuts_mat.ravel() == 1)[0].astype(float)  # cut indices
 
         else:
-            row = df_in.iloc[i % len(files)]
+            row = df_in.iloc[i % df_in.shape[0]]
             seq, struct, cuts = row.seq, row.struct, row.cuts
 
             if data_augment_mutation:
@@ -86,7 +89,9 @@ def motif_cache_data_generator(
             cuts_mat = np.array([float(c) for c in cuts[1:-1].split(" ")])
 
         i += 1
-        if max_len is not None and seq_mat.shape[0] > max_len:
+        if (max_len is not None and seq_mat.shape[0] > max_len) or (
+            min_len is not None and seq_mat.shape[0] < min_len
+        ):
             continue
 
         yield seq_mat.reshape((1, seq_mat.shape[0], max_motifs + 4)), cuts_mat.reshape(
@@ -140,8 +145,8 @@ def motif_cache_data_generator(
 
 
 # Fit model
-train_path = Path("resources/data_splits/train_sequencewise")
-test_path = Path("resources/data_splits/test_sequencewise")
+train_path = Path("resources/data_splits/train_familywise_80")
+test_path = Path("resources/data_splits/test_familywise_80")
 history = model.fit(
     motif_cache_data_generator(train_path),
     validation_data=motif_cache_data_generator(test_path),

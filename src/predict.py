@@ -41,104 +41,26 @@ default_cut_model.compile(
 )
 
 
-class Args:
-    # self.func=<function Predict.add_args.<locals>.<lambda> at 0x7f526585d4c0>
-    # self.input='bpRNA_CRW_1.fasta'
-    seed = 0
-    gpu = 0
-    param = "TrainSetAB.pth"
-    result = None
-    bpseq = None
-    model = "MixC"
-    max_helix_length = 30
-    embed_size = 64
-    num_filters = [64, 64, 64, 64, 64, 64, 64, 64]
-    filter_size = [5, 3, 5, 3, 5, 3, 5, 3]
-    pool_size = [1]
-    dilation = 0
-    num_lstm_layers = 2
-    num_lstm_units = 32
-    num_transformer_layers = 0
-    num_transformer_hidden_units = 2048
-    num_transformer_att = 8
-    num_paired_filters = [64, 64, 64, 64, 64, 64, 64, 64]
-    paired_filter_size = [5, 3, 5, 3, 5, 3, 5, 3]
-    num_hidden_units = [32]
-    dropout_rate = 0.5
-    fc_dropout_rate = 0.5
-    num_att = 8
-    pair_join = "cat"
-    no_split_lr = False
-
-
-mxfold2_predictor = Predict()
-args = Args()
-conf = Path(mxfold2.__file__).parents[0] / "models/TrainSetAB.conf"
-
-# seed
-if args.seed >= 0:
-    torch.manual_seed(args.seed)
-    random.seed(args.seed)
-
-# model
-mxfold2_predictor.model, _ = mxfold2_predictor.build_model(args)
-
-# param and conf
-if args.param != "":
-    param = Path(args.param)
-    if not param.exists() and conf is not None:
-        param = Path(conf).parent / param
-    p = torch.load(param, map_location="cpu")
-    if isinstance(p, dict) and "model_state_dict" in p:
-        p = p["model_state_dict"]
-    mxfold2_predictor.model.load_state_dict(p)
-
-# gpu
-if args.gpu >= 0:
-    mxfold2_predictor.model.to(torch.device("cuda", args.gpu))
-
-
-def mxfold2_predict(seqs):
+def mxfold2_predict(seq):
     tstart = time.time()
 
-    if isinstance(seqs, str):
-        seqs = [seqs]
-
     # clear memory
-    if args.gpu >= 0:
-        t = torch.cuda.get_device_properties(0).total_memory
-        r = torch.cuda.memory_reserved(0)
-        a = torch.cuda.memory_allocated(0)
-        f = r - a
-        if r > 0.0 * t:
-            torch.cuda.empty_cache()
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0)
+    if r > 0.0 * t:
+        torch.cuda.empty_cache()
 
     # predict
-    scs = []
-    preds = []
-    bps = []
-    mxfold2_predictor.test_loader = DataLoader(
-        seqs, batch_size=1, shuffle=False
-    )  # data loader
-    mxfold2_predictor.model.eval()
-    with torch.no_grad():
-        for seq_batch in mxfold2_predictor.test_loader:
-            scs_batch, preds_batch, bps_batch = mxfold2_predictor.model(seq_batch)
-            scs += scs_batch.tolist()
-            preds += preds_batch
-            bps += bps_batch
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
+    path_in = f"temp_mxfold2_{suffix}.fa"
+    with open(path_in, "w") as f:
+        f.write(f">test_name\n{seq}\n")
+    pred = os.popen(f"mxfold2 predict {path_in}").read()
+    prtin("PRED:\n", pred)
 
-    if args.gpu >= 0:
-        t = torch.cuda.get_device_properties(0).total_memory
-        r = torch.cuda.memory_reserved(0)
-        memory = r / t
-    else:
-        r = t = memory = -1
-
-    if len(preds) == 1:
-        scs = scs[0]
-        preds = preds[0]
-        bps = bps[0]
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0)
+    memory = r / t
 
     ttot = time.time() - tstart
 
