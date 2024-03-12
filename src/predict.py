@@ -41,7 +41,7 @@ default_cut_model.compile(
 )
 
 
-def mxfold2_predict(seq):
+def mxfold2_predict(seq, param=None):
     tstart = time.time()
 
     # clear memory
@@ -55,8 +55,13 @@ def mxfold2_predict(seq):
     path_in = f"temp_mxfold2_{suffix}.fa"
     with open(path_in, "w") as f:
         f.write(f">test_name\n{seq}\n")
-    pred = os.popen(f"mxfold2 predict {path_in}").read()
-    prtin("PRED:\n", pred)
+    pred = None
+    if param is None:
+        pred = os.popen(f"mxfold2 predict {path_in} --gpu 0")
+    else:
+        pred = os.popen(f"mxfold2 predict @./{param}.conf {path_in} --gpu 0 --param {param}.pth").read()
+    pred = pred.strip().split('\n')[2].split(' ')[0]
+    os.remove(path_in)
 
     t = torch.cuda.get_device_properties(0).total_memory
     r = torch.cuda.memory_reserved(0)
@@ -64,7 +69,7 @@ def mxfold2_predict(seq):
 
     ttot = time.time() - tstart
 
-    return preds, scs, bps, ttot, memory
+    return pred, None, None, ttot, memory
 
 
 def ufold_predict(seqs):
