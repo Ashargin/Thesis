@@ -57,7 +57,7 @@ def mxfold2_predict(seq, param=None):
         f.write(f">test_name\n{seq}\n")
     pred = None
     if param is None:
-        pred = os.popen(f"mxfold2 predict {path_in} --gpu 0")
+        pred = os.popen(f"mxfold2 predict {path_in} --gpu 0").read()
     else:
         pred = os.popen(f"mxfold2 predict @./{param}.conf {path_in} --gpu 0 --param {param}.pth").read()
     pred = pred.strip().split('\n')[2].split(' ')[0]
