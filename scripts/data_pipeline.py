@@ -5,7 +5,6 @@ import pandas as pd
 import re
 
 from src.utils import struct_to_pairs
-from src.predict import oracle_get_cuts
 
 # Read source
 path_structures = Path("resources/data_structures")
@@ -46,22 +45,20 @@ with open(path_structures / "all_fasta.fasta", "w") as f:
 # Clusterize with CD-HIT
 # ... use CD-HIT
 
-# Read clusters. Write dbn for sequence-wise and family-wise splits
+# Read splits and clusters. Write structures and splits for sequence-wise and family-wise splits
+splits_df = pd.read_csv(path_splits / "all_splits.csv", index_col=0)
+
+
 def write_files_dbn_csv(filename, src_df, write_dbn=True):
+    # Write structures dbn
     if write_dbn:
         with open(path_structures / f"{filename}.dbn", "w") as f:
             for name, seq, struct in zip(src_df.rna_name, src_df.seq, src_df.struct):
                 f.write(f"#Name: {name}\n{seq}\n{struct}\n")
-    ser_cuts = []
-    ser_outer = []
-    for struct in src_df.struct:
-        cuts, outer = oracle_get_cuts(struct)
-        ser_cuts.append(str(cuts).replace(", ", " "))
-        ser_outer.append(outer)
-    src_df = src_df.copy()
-    src_df["cuts"] = ser_cuts
-    src_df["outer"] = ser_outer
-    src_df.to_csv(path_splits / f"{filename}.csv")
+
+    # Write splits csv
+    src_splits_df = splits_df[splits_df.rna_name.isin(src_df.rna_name.unique())]
+    src_splits_df.to_csv(path_splits / f"{filename}.csv")
 
 
 clusters_path = Path("resources/data_clusters")

@@ -36,7 +36,6 @@ model.compile(
 def motif_cache_data_generator(
     path_in,
     max_motifs=MAX_MOTIFS,
-    min_len=None,
     max_len=None,
     from_cache=False,
     data_augment_mutation=DATA_AUGMENT_MUTATION,
@@ -89,9 +88,7 @@ def motif_cache_data_generator(
             cuts_mat = np.array([float(c) for c in cuts[1:-1].split(" ")])
 
         i += 1
-        if (max_len is not None and seq_mat.shape[0] > max_len) or (
-            min_len is not None and seq_mat.shape[0] < min_len
-        ):
+        if max_len is not None and seq_mat.shape[0] > max_len:
             continue
 
         yield seq_mat.reshape((1, seq_mat.shape[0], max_motifs + 4)), cuts_mat.reshape(
@@ -150,9 +147,9 @@ test_path = Path("resources/data_splits/test_familywise_80")
 history = model.fit(
     motif_cache_data_generator(train_path),
     validation_data=motif_cache_data_generator(test_path),
-    steps_per_epoch=1267,
+    steps_per_epoch=1152,
     epochs=100,
-    validation_steps=305,
+    validation_steps=259,
 )
 
 model.save(
