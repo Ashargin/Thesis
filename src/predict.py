@@ -27,10 +27,18 @@ from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
 
 from src.utils import format_data, eval_energy, get_scores
+from src.mxfold2_args import Mxfold2Args
 from src.models.loss import inv_exp_distance_to_cut_loss
 
+# Settings
+DEFAULT_CUT_MODEL = Path(
+    "resources/models/CNN1D_sequencewise_200motifs256dilINV_augmented"
+)
+DEFAULT_MXFOLD2_CONF = Path(mxfold2.__file__).parents[0] / "models/TrainSetAB.conf"
+
+# Load cut model
 default_cut_model = keras.models.load_model(
-    Path("resources/models/CNN1D_sequencewise_200motifs256dilINV_augmented"),
+    DEFAULT_CUT_MODEL,
     compile=False,
 )
 default_cut_model.compile(
@@ -40,36 +48,89 @@ default_cut_model.compile(
     run_eagerly=True,
 )
 
+# Build Mxfold2 predictor
+def build_mxfold2_predictor(conf):
+    # Get conf and build Mxfold2 predictor
+    mx_predictor = Predict()
+    args = Mxfold2Args(conf=conf)
 
-def mxfold2_predict(seq, param=None):
+    # seed
+    if args.seed >= 0:
+        torch.manual_seed(args.seed)
+        random.seed(args.seed)
+
+    # model
+    mx_predictor.model, _ = mx_predictor.build_model(args)
+
+    # param and conf
+    if args.param != "":
+        param = Path(args.param)
+        if not param.exists() and conf is not None:
+            param = Path(conf).parent / param
+        p = torch.load(param, map_location="cpu")
+        if isinstance(p, dict) and "model_state_dict" in p:
+            p = p["model_state_dict"]
+        mx_predictor.model.load_state_dict(p)
+
+    # gpu
+    if args.gpu >= 0:
+        mx_predictor.model.to(torch.device("cuda", args.gpu))
+
+    return mx_predictor, args
+
+
+mxfold2_args = None
+mxfold2_predictor = None
+
+
+def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
+    # Load model if first time
+    global mxfold2_args
+    global mxfold2_predictor
+    if mxfold2_predictor is None:
+        mxfold2_predictor, mxfold2_args = build_mxfold2_predictor(conf)
+
     tstart = time.time()
 
     # clear memory
-    t = torch.cuda.get_device_properties(0).total_memory
-    r = torch.cuda.memory_reserved(0)
-    if r > 0.0 * t:
-        torch.cuda.empty_cache()
+    if mxfold2_args.gpu >= 0:
+        t = torch.cuda.get_device_properties(0).total_memory
+        r = torch.cuda.memory_reserved(0)
+        a = torch.cuda.memory_allocated(0)
+        f = r - a
+        if r > 0.0 * t:
+            torch.cuda.empty_cache()
 
     # predict
-    suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
-    path_in = f"temp_mxfold2_{suffix}.fa"
-    with open(path_in, "w") as f:
-        f.write(f">test_name\n{seq}\n")
-    pred = None
-    if param is None:
-        pred = os.popen(f"mxfold2 predict {path_in} --gpu 0").read()
-    else:
-        pred = os.popen(f"mxfold2 predict @./{param}.conf {path_in} --gpu 0 --param {param}.pth").read()
-    pred = pred.strip().split('\n')[2].split(' ')[0]
-    os.remove(path_in)
+    scs = []
+    preds = []
+    bps = []
+    mxfold2_predictor.test_loader = DataLoader(
+        seq, batch_size=1, shuffle=False
+    )  # data loader
+    mxfold2_predictor.model.eval()
+    with torch.no_grad():
+        for seq_batch in mxfold2_predictor.test_loader:
+            scs_batch, preds_batch, bps_batch = mxfold2_predictor.model(seq_batch)
+            scs += scs_batch.tolist()
+            preds += preds_batch
+            bps += bps_batch
 
-    t = torch.cuda.get_device_properties(0).total_memory
-    r = torch.cuda.memory_reserved(0)
-    memory = r / t
+    if mxfold2_args.gpu >= 0:
+        t = torch.cuda.get_device_properties(0).total_memory
+        r = torch.cuda.memory_reserved(0)
+        memory = r / t
+    else:
+        r = t = memory = -1
+
+    if len(preds) == 1:
+        scs = scs[0]
+        preds = preds[0]
+        bps = bps[0]
 
     ttot = time.time() - tstart
 
-    return pred, None, None, ttot, memory
+    return preds, scs, bps, ttot, memory
 
 
 def ufold_predict(seqs):
