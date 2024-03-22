@@ -109,5 +109,5 @@ def write_files_dbn_csv_bpseq(filename, src_df, max_bpseq_length=500):
     # list_file.close()
 
 
-write_files_dbn_csv_bpseq("train_sequencewise", train_df)
+write_files_dbn_csv_bpseq("train", train_df)
 write_files_dbn_csv_bpseq("test_sequencewise", test_df)
