@@ -33,9 +33,10 @@ model.compile(
 
 
 # Dataloader
-def motif_cache_data_generator(
+def motif_data_generator(
     path_in,
     max_motifs=MAX_MOTIFS,
+    min_len=400,
     max_len=None,
     from_cache=False,
     data_augment_mutation=DATA_AUGMENT_MUTATION,
@@ -46,9 +47,13 @@ def motif_cache_data_generator(
         files = os.listdir(path_in)
         np.random.shuffle(files)
     else:
-        path_df_in = Path("resources/data_splits") / (path_in.name + ".csv")
+        path_df_in = path_in.parent / (path_in.name + ".csv")
         df_in = pd.read_csv(path_df_in, index_col=0)
         df_in = df_in.sample(frac=1.0)
+        if min_len is not None:
+            df_in = df_in[df_in.seq.apply(len) > min_len]
+        if max_len is not None:
+            df_in = df_in[df_in.seq.apply(len) <= max_len]
         assert df_in.isna().sum().sum() == 0
 
     df_motifs = pd.read_csv(Path("resources/motif_seqs.csv"), index_col=0)
@@ -88,7 +93,9 @@ def motif_cache_data_generator(
             cuts_mat = np.array([float(c) for c in cuts[1:-1].split(" ")])
 
         i += 1
-        if max_len is not None and seq_mat.shape[0] > max_len:
+        if (max_len is not None and seq_mat.shape[0] > max_len) or (
+            min_len is not None and seq_mat.shape[0] <= min_len
+        ):
             continue
 
         yield seq_mat.reshape((1, seq_mat.shape[0], max_motifs + 4)), cuts_mat.reshape(
@@ -142,21 +149,34 @@ def motif_cache_data_generator(
 
 
 # Fit model
-train_path = Path("resources/data_splits/train_familywise_80")
-test_path = Path("resources/data_splits/test_familywise_80")
-history = model.fit(
-    motif_cache_data_generator(train_path),
-    validation_data=motif_cache_data_generator(test_path),
-    steps_per_epoch=1152,
-    epochs=100,
-    validation_steps=259,
-)
-
-model.save(
-    Path(
-        f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV{'_augmented' if DATA_AUGMENT_MUTATION else ''}"
+train_path = Path("resources/data_splits/train_sequencewise")
+test_path = Path("resources/data_splits/test_sequencewise")
+train_gen = motif_data_generator(train_path)
+test_gen = motif_data_generator(test_path)
+histories = []
+losses = []
+while True:
+    history = model.fit(
+        train_gen,
+        validation_data=test_gen,
+        steps_per_epoch=449,
+        epochs=100,
+        validation_steps=99,
     )
-)
+    histories.append(history.history)
+    this_loss = round(100000 * np.mean(history.history["val_loss"]), 2)
+
+    must_save = (not losses) or (this_loss < min(losses))
+    if must_save:
+        model.save(
+            Path(
+                f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV{'_augmented' if DATA_AUGMENT_MUTATION else ''}"
+            )
+        )
+    losses.append(this_loss)
+    print(losses)
+    print("SAVED" if must_save else "DISCARDED")
+
 
 import matplotlib.pyplot as plt
 
@@ -182,7 +202,7 @@ plt.show()
 #     metrics=["accuracy"],
 #     run_eagerly=True,
 # )
-# test_datagen = motif_cache_data_generator(Path("resources/data/temptest"))
+# test_datagen = motif_data_generator(Path("resources/data/temptest"))
 #
 #
 # def plot_cut_probabilities():

@@ -540,33 +540,22 @@ def divide_get_fragment_ranges_preds(
     for left_b, right_b in inner_bounds:
         subseq = seq[left_b:right_b]
 
+        substruct = ""
         if struct:
             substruct = struct[left_b:right_b]
             assert substruct.count("(") == substruct.count(")")
-            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
-                subseq,
-                max_length=max_length,
-                max_steps=max_steps,
-                min_steps=min_steps,
-                cut_model=cut_model,
-                predict_fnc=predict_fnc,
-                max_motifs=max_motifs,
-                fuse_to=fuse_to,
-                struct=substruct,
-                evaluate_cutting_model=evaluate_cutting_model,
-            )
-        else:
-            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
-                subseq,
-                max_length=max_length,
-                max_steps=max_steps,
-                min_steps=min_steps,
-                cut_model=cut_model,
-                predict_fnc=predict_fnc,
-                max_motifs=max_motifs,
-                fuse_to=fuse_to,
-                evaluate_cutting_model=evaluate_cutting_model,
-            )
+        this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+            subseq,
+            max_length=max_length,
+            max_steps=max_steps,
+            min_steps=min_steps,
+            cut_model=cut_model,
+            predict_fnc=predict_fnc,
+            max_motifs=max_motifs,
+            fuse_to=fuse_to,
+            struct=substruct,
+            evaluate_cutting_model=evaluate_cutting_model,
+        )
 
         for _range, pred in this_frag_preds:
             frag_preds.append((_range + left_b, pred))
@@ -579,35 +568,24 @@ def divide_get_fragment_ranges_preds(
         right_subseq = seq[left_b_2:right_b_2]
         subseq = left_subseq + right_subseq
 
+        substruct = ""
         if struct:
             left_substruct = struct[left_b_1:right_b_1]
             right_substruct = struct[left_b_2:right_b_2]
             substruct = left_substruct + right_substruct
             assert substruct.count("(") == substruct.count(")")
-            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
-                subseq,
-                max_length=max_length,
-                max_steps=max_steps,
-                min_steps=min_steps,
-                cut_model=cut_model,
-                predict_fnc=predict_fnc,
-                max_motifs=max_motifs,
-                fuse_to=fuse_to,
-                struct=substruct,
-                evaluate_cutting_model=evaluate_cutting_model,
-            )
-        else:
-            this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
-                subseq,
-                max_length=max_length,
-                max_steps=max_steps,
-                min_steps=min_steps,
-                cut_model=cut_model,
-                predict_fnc=predict_fnc,
-                max_motifs=max_motifs,
-                fuse_to=fuse_to,
-                evaluate_cutting_model=evaluate_cutting_model,
-            )
+        this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+            subseq,
+            max_length=max_length,
+            max_steps=max_steps,
+            min_steps=min_steps,
+            cut_model=cut_model,
+            predict_fnc=predict_fnc,
+            max_motifs=max_motifs,
+            fuse_to=fuse_to,
+            struct=substruct,
+            evaluate_cutting_model=evaluate_cutting_model,
+        )
 
         sep = right_b_1 - left_b_1
         for _range, pred in this_frag_preds:
