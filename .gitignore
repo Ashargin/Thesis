@@ -11,6 +11,7 @@ resources/data_structures/*
 !resources/data_structures/train*.dbn
 resources/mxfold2_models
 resources/models_old
+Rfam_data
 rnapar_raw_data
 shaker_data
 mxfold2_data

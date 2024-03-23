@@ -29,8 +29,8 @@ df_motifs = df_motifs[df_motifs.time < 0.012].reset_index(drop=True)
 
 
 def struct_to_pairs(struct):
-    open_brackets = ["(", "[", "<", "{", "A", "B", "C"]
-    close_brackets = [")", "]", ">", "}", "a", "b", "c"]
+    open_brackets = ["(", "[", "<", "{", "A", "B", "C", "D"]
+    close_brackets = [")", "]", ">", "}", "a", "b", "c", "d"]
     opened = [[] for _ in range(len(open_brackets))]
     pairs = {}
     for i, char in enumerate(struct):
