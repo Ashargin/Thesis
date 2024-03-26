@@ -4,11 +4,12 @@ bpRNA_1m
 .subopt_cache
 carnaval_dataset
 resources/results
-resources/clusters.clstr
+resources/clusters*
 resources/data_splits
 resources/data_structures/*
-!resources/data_structures/test*.dbn
 !resources/data_structures/train*.dbn
+!resources/data_structures/val*.dbn
+!resources/data_structures/test*.dbn
 resources/mxfold2_models
 resources/models_old
 Rfam_data
