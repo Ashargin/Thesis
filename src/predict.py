@@ -392,7 +392,7 @@ def oracle_get_cuts(struct):
     return cuts, outer
 
 
-def divide_get_cuts(
+def dividefold_get_cuts(
     seq,
     min_height=0.28,
     min_distance=12,
@@ -482,7 +482,7 @@ def linearfold_get_cuts(seq):
     return oracle_get_cuts(preds)
 
 
-def divide_get_fragment_ranges_preds(
+def dividefold_get_fragment_ranges_preds(
     seq,
     max_length=1000,
     max_steps=None,
@@ -508,7 +508,7 @@ def divide_get_fragment_ranges_preds(
     if struct:
         cuts, outer = oracle_get_cuts(struct)
     else:
-        cuts, outer = divide_get_cuts(
+        cuts, outer = dividefold_get_cuts(
             seq, cut_model=cut_model, max_motifs=max_motifs, fuse_to=fuse_to
         )
 
@@ -542,7 +542,7 @@ def divide_get_fragment_ranges_preds(
         if struct:
             substruct = struct[left_b:right_b]
             assert substruct.count("(") == substruct.count(")")
-        this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+        this_frag_preds, _, _, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
             max_length=max_length,
             max_steps=max_steps,
@@ -572,7 +572,7 @@ def divide_get_fragment_ranges_preds(
             right_substruct = struct[left_b_2:right_b_2]
             substruct = left_substruct + right_substruct
             assert substruct.count("(") == substruct.count(")")
-        this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+        this_frag_preds, _, _, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
             max_length=max_length,
             max_steps=max_steps,
@@ -616,7 +616,7 @@ def divide_get_fragment_ranges_preds(
     return frag_preds, None, None, ttot, memory
 
 
-def divide_predict(
+def dividefold_predict(
     seq,
     max_length=None,
     max_steps=None,
@@ -644,7 +644,7 @@ def divide_predict(
     if max_steps is not None and max_steps < min_steps:
         raise Warning("max_steps must be greater than min_steps.")
 
-    frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+    frag_preds, _, _, _, memory = dividefold_get_fragment_ranges_preds(
         seq,
         max_length=max_length,
         max_steps=max_steps,
