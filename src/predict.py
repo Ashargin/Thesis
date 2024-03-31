@@ -104,7 +104,7 @@ def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
     preds = []
     bps = []
     mxfold2_predictor.test_loader = DataLoader(
-        seq, batch_size=1, shuffle=False
+        [seq], batch_size=1, shuffle=False
     )  # data loader
     mxfold2_predictor.model.eval()
     with torch.no_grad():
