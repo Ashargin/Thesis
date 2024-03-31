@@ -226,7 +226,7 @@ def run_preds(
                     n_pairs += 1
                     if frag_attrib[i] != frag_attrib[j]:
                         n_breaks += 1
-            break_rate = n_breaks / n_pairs
+            break_rate = n_breaks / n_pairs if n_pairs > 0 else 0.0
             compression = (
                 1 - ((pd.Series(frag_attrib).value_counts() / len(seq)) ** 2).sum()
             )

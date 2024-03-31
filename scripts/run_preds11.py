@@ -25,7 +25,7 @@ evaluate_cutting_model = False
 model = None
 model_name = ""
 if global_predict_fnc.__name__ == "dividefold_predict":
-    model_name == "oracle"
+    model_name = "oracle"
     if model_filename != "oracle":
         model = keras.models.load_model(
             Path(f"resources/models/{model_filename}"), compile=False
