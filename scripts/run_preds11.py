@@ -47,14 +47,14 @@ global_model_name = global_predict_fnc.__name__.replace("_predict", "")
 model_name = (
     "_" + model_name if global_predict_fnc.__name__ == "dividefold_predict" else ""
 )
-max_length_name = "_meta" if global_predict_fnc.__name__ == "dividefold_predict" else ""
+max_length_name = "_200"
 predict_name = ""
 if global_predict_fnc.__name__ == "dividefold_predict" and not evaluate_cutting_model:
     predict_name = "_" + predict_fnc.__name__.replace("_predict", "").replace(
         "mxfold2", "mx"
     ).replace("linearfold", "lf").replace("rnafold", "rnaf")
 kwargs = (
-    {"cut_model": model, "predict_fnc": predict_fnc}
+    {"cut_model": model, "predict_fnc": predict_fnc, "max_length": 200}
     if global_predict_fnc.__name__ == "dividefold_predict"
     else {}
 )
