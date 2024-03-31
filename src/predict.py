@@ -31,10 +31,8 @@ from src.mxfold2_args import Mxfold2Args
 from src.models.loss import inv_exp_distance_to_cut_loss
 
 # Settings
-DEFAULT_CUT_MODEL = Path(
-    "resources/models/CNN1D_sequencewise_200motifs256dilINV_augmented"
-)
-DEFAULT_MXFOLD2_CONF = Path(mxfold2.__file__).parents[0] / "models/TrainSetAB.conf"
+DEFAULT_CUT_MODEL = Path("resources/models/CNN1D")
+DEFAULT_MXFOLD2_CONF = Path("resources/mxfold2_models/TR0-canonicals.conf")
 
 # Load cut model
 default_cut_model = keras.models.load_model(

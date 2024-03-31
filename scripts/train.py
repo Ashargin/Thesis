@@ -22,12 +22,12 @@ MAX_DIL = 256
 DATA_AUGMENT_MUTATION = True
 
 # Load model
-model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
-# model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
+# model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
+# model = MLP(input_shape=(None, MAX_MOTIFS + 4))
+model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
 model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
-    metrics=["accuracy"],
     run_eagerly=True,
 )
 
@@ -149,60 +149,54 @@ def motif_data_generator(
 
 
 # Fit model
-train_path = Path("resources/data_splits/train_sequencewise")
-test_path = Path("resources/data_splits/test_sequencewise")
+train_path = Path("resources/data_splits/train")
+val_path = Path("resources/data_splits/validation_sequencewise")
 train_gen = motif_data_generator(train_path)
-test_gen = motif_data_generator(test_path)
+val_gen = motif_data_generator(val_path)
 histories = []
 losses = []
 while True:
     history = model.fit(
         train_gen,
-        validation_data=test_gen,
-        steps_per_epoch=449,
-        epochs=100,
-        validation_steps=99,
+        validation_data=val_gen,
+        steps_per_epoch=378,
+        epochs=1,
+        validation_steps=33,
     )
     histories.append(history.history)
     this_loss = round(100000 * np.mean(history.history["val_loss"]), 2)
 
     must_save = (not losses) or (this_loss < min(losses))
     if must_save:
-        model.save(
-            Path(
-                f"resources/models/CNN1D_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV{'_augmented' if DATA_AUGMENT_MUTATION else ''}"
-            )
-        )
+        model.save(Path("resources/models/BiLSTM"))
     losses.append(this_loss)
     print(losses)
     print("SAVED" if must_save else "DISCARDED")
 
-
-import matplotlib.pyplot as plt
-
-loss = history.history["loss"]
-val_loss = history.history["val_loss"]
-X = np.arange(len(loss))
-plt.plot(X, loss, label="Train loss")
-plt.plot(X, val_loss, label="Validation loss")
-plt.legend()
-plt.xlim(([0, 100]))
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training loss curve (sequence-wise train / test split)")
-plt.savefig(
-    rf"resources/png/training_curve_cnn_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV{'_augmented' if DATA_AUGMENT_MUTATION else ''}.png"
-)
-plt.show()
-
-# my_model = keras.models.load_model(Path("resources/models/model_motifs"), compile=False)
-# my_model.compile(
-#     optimizer="adam",
-#     loss=inv_exp_distance_to_cut_loss,
-#     metrics=["accuracy"],
-#     run_eagerly=True,
+# import matplotlib.pyplot as plt
+#
+# loss = history.history["loss"]
+# val_loss = history.history["val_loss"]
+# X = np.arange(len(loss))
+# plt.plot(X, loss, label="Train loss")
+# plt.plot(X, val_loss, label="Validation loss")
+# plt.legend()
+# plt.xlim(([0, 100]))
+# plt.xlabel("Epoch")
+# plt.ylabel("Loss")
+# plt.title("Training loss curve (sequence-wise train / val split)")
+# plt.savefig(
+#     rf"resources/png/training_curve_cnn_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV{'_augmented' if DATA_AUGMENT_MUTATION else ''}.png"
 # )
-# test_datagen = motif_data_generator(Path("resources/data/temptest"))
+# plt.show()
+#
+my_model = keras.models.load_model(Path("resources/models/BiLSTM"), compile=False)
+my_model.compile(
+    optimizer="adam",
+    loss=inv_exp_distance_to_cut_loss,
+    run_eagerly=True,
+)
+# test_datagen = motif_data_generator(Path("resources/data_splits/test_sequencewise"))
 #
 #
 # def plot_cut_probabilities():
