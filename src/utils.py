@@ -313,17 +313,20 @@ def get_scores_df(path_in):
         }
     )
     cutting_metric_filename = (
-        path_in.name.replace("_mx", "")
-        .replace("_rnaf", "")
-        .replace("_lf", "")
-        .replace("_sub", "")
-        .replace("_ens", "")
+        path_in.name.replace("_mx_", "_")
+        .replace("_rnaf_", "_")
+        .replace("_lf_", "_")
+        .replace("_sub_", "_")
+        .replace("_ens_", "_")
         .replace(".csv", "_cuttingmetrics.csv")
     )
     cutting_metric_path = (
-        path_in.parent.parent / "cutting_metrics" / cutting_metric_filename
+        path_in.parents[2]
+        / "cutting_metrics"
+        / path_in.parent.name
+        / cutting_metric_filename
     )
-    if "sequencewise" in path_in.name and cutting_metric_path.exists():
+    if cutting_metric_path.exists():
         df_cutting_metrics = pd.read_csv(cutting_metric_path)
         assert np.all(data.rna_name == df_cutting_metrics.rna_name)
         data["cut_break_rate"] = df_cutting_metrics.break_rate
