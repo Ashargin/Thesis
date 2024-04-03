@@ -18,8 +18,9 @@ from src.utils import run_preds
 # Settings
 global_predict_fnc = dividefold_predict
 model_filename = "CNN1D"
-predict_fnc = linearfold_predict
+predict_fnc = mxfold2_predict
 evaluate_cutting_model = False
+max_length = 1200
 
 # Load model
 model = None
@@ -47,14 +48,16 @@ global_model_name = global_predict_fnc.__name__.replace("_predict", "")
 model_name = (
     "_" + model_name if global_predict_fnc.__name__ == "dividefold_predict" else ""
 )
-max_length_name = "_meta" if global_predict_fnc.__name__ == "dividefold_predict" else ""
+max_length_name = (
+    f"_{max_length}" if global_predict_fnc.__name__ == "dividefold_predict" else ""
+)
 predict_name = ""
 if global_predict_fnc.__name__ == "dividefold_predict" and not evaluate_cutting_model:
     predict_name = "_" + predict_fnc.__name__.replace("_predict", "").replace(
         "mxfold2", "mx"
     ).replace("linearfold", "lf").replace("rnafold", "rnaf")
 kwargs = (
-    {"cut_model": model, "predict_fnc": predict_fnc}
+    {"cut_model": model, "predict_fnc": predict_fnc, "max_length": max_length}
     if global_predict_fnc.__name__ == "dividefold_predict"
     else {}
 )
