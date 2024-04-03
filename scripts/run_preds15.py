@@ -17,15 +17,16 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "oracle"
-predict_fnc = linearfold_predict
+model_filename = "CNN1D"
+predict_fnc = rnafold_predict
 evaluate_cutting_model = False
+max_length = 200
 
 # Load model
 model = None
 model_name = ""
 if global_predict_fnc.__name__ == "dividefold_predict":
-    model_name = "oracle"
+    model_name == "oracle"
     if model_filename != "oracle":
         model = keras.models.load_model(
             Path(f"resources/models/{model_filename}"), compile=False
@@ -47,14 +48,16 @@ global_model_name = global_predict_fnc.__name__.replace("_predict", "")
 model_name = (
     "_" + model_name if global_predict_fnc.__name__ == "dividefold_predict" else ""
 )
-max_length_name = "_200"
+max_length_name = (
+    f"_{max_length}" if global_predict_fnc.__name__ == "dividefold_predict" else ""
+)
 predict_name = ""
 if global_predict_fnc.__name__ == "dividefold_predict" and not evaluate_cutting_model:
     predict_name = "_" + predict_fnc.__name__.replace("_predict", "").replace(
         "mxfold2", "mx"
     ).replace("linearfold", "lf").replace("rnafold", "rnaf")
 kwargs = (
-    {"cut_model": model, "predict_fnc": predict_fnc, "max_length": 200}
+    {"cut_model": model, "predict_fnc": predict_fnc, "max_length": max_length}
     if global_predict_fnc.__name__ == "dividefold_predict"
     else {}
 )
