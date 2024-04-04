@@ -492,14 +492,14 @@ def dividefold_get_fragment_ranges_preds(
     max_motifs=None,
     fuse_to=None,
     struct="",
-    evaluate_cutting_model=False,
+    return_cuts=False,
 ):
     tstart = time.time()
 
     if max_steps == 0 or len(seq) <= max_length and min_steps <= 0:
         pred, a, b, ttot, memory = (
             predict_fnc(seq)
-            if not evaluate_cutting_model
+            if not return_cuts
             else ("." * len(seq), None, None, 0.0, 0.0)
         )
         frag_preds = [(np.array([[0, len(seq) - 1]]).astype(int), pred)]
@@ -552,7 +552,7 @@ def dividefold_get_fragment_ranges_preds(
             max_motifs=max_motifs,
             fuse_to=fuse_to,
             struct=substruct,
-            evaluate_cutting_model=evaluate_cutting_model,
+            return_cuts=return_cuts,
         )
 
         for _range, pred in this_frag_preds:
@@ -582,7 +582,7 @@ def dividefold_get_fragment_ranges_preds(
             max_motifs=max_motifs,
             fuse_to=fuse_to,
             struct=substruct,
-            evaluate_cutting_model=evaluate_cutting_model,
+            return_cuts=return_cuts,
         )
 
         sep = right_b_1 - left_b_1
@@ -628,7 +628,7 @@ def dividefold_predict(
     fuse_to=None,
     struct="",
     struct_to_print_fscores="",
-    evaluate_cutting_model=False,
+    return_cuts=False,
 ):
     tstart = time.time()
 
@@ -654,10 +654,10 @@ def dividefold_predict(
         max_motifs=max_motifs,
         fuse_to=fuse_to,
         struct=struct,
-        evaluate_cutting_model=evaluate_cutting_model,
+        return_cuts=return_cuts,
     )
 
-    if evaluate_cutting_model:
+    if return_cuts:
         return frag_preds, None, None, None, None
 
     def assemble_fragments(in_frag_preds):

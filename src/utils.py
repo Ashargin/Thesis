@@ -183,7 +183,7 @@ def run_preds(
         if feed_structs_to_print_fscores:
             kwargs["struct_to_print_fscores"] = struct
         if evaluate_cutting_model:
-            kwargs["evaluate_cutting_model"] = True
+            kwargs["return_cuts"] = True
 
         if compute_frac is not None and skip_counter < 0:
             skip_counter += compute_frac
