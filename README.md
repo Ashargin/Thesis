@@ -38,3 +38,6 @@ This will return the cut points at the final step in the recursive cutting proce
 from DivideFold.predict import dividefold_get_cuts
 cuts, _ = dividefold_get_cuts(sequence)
 ```
+
+## Data availability
+All data used in our training and experiments can be found in `resources/data_structures/`, including our training set and our validation and test sets for both our sequence-wise and our family-wise split.
