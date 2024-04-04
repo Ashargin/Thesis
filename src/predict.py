@@ -620,7 +620,7 @@ def dividefold_predict(
     seq,
     max_length=None,
     max_steps=None,
-    min_steps=None,
+    min_steps=0,
     multipred_kmax=20,
     cut_model=default_cut_model,
     predict_fnc=mxfold2_predict,
@@ -632,14 +632,8 @@ def dividefold_predict(
 ):
     tstart = time.time()
 
-    if min_steps is None:
-        min_steps = 1 if len(seq) >= 400 else 0
-        if max_length is not None:
-            min_steps = 0
-        if max_steps is not None:
-            min_steps = min(min_steps, max_steps)
     if max_length is None:
-        max_length = 2000 if len(seq) < 1300 or len(seq) >= 1600 else 200
+        max_length = 2000 if len(seq) > 2500 else 400
 
     if max_steps is not None and max_steps < min_steps:
         raise Warning("max_steps must be greater than min_steps.")
