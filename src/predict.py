@@ -18,10 +18,8 @@ path_workdir = Path("..")
 path_ufold = Path("../UFold")
 path_linearfold = Path("../LinearFold")
 path_rnapar = Path("../RNAPar")
-path_rnastructure = Path("../RNAstructure/exe")
 sys.path.append(os.path.abspath(path_workdir))
 sys.path.append(os.path.abspath(path_ufold))
-sys.path.append(os.path.abspath(path_rnastructure))
 import mxfold2
 from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
@@ -92,27 +90,20 @@ def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
 
     # clear memory
     if mxfold2_args.gpu >= 0:
-        t = torch.cuda.get_device_properties(0).total_memory
-        r = torch.cuda.memory_reserved(0)
-        a = torch.cuda.memory_allocated(0)
-        f = r - a
-        if r > 0.0 * t:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
     # predict
-    scs = []
     preds = []
-    bps = []
     mxfold2_predictor.test_loader = DataLoader(
         [seq], batch_size=1, shuffle=False
     )  # data loader
     mxfold2_predictor.model.eval()
     with torch.no_grad():
         for seq_batch in mxfold2_predictor.test_loader:
-            scs_batch, preds_batch, bps_batch = mxfold2_predictor.model(seq_batch)
-            scs += scs_batch.tolist()
+            _, preds_batch, _ = mxfold2_predictor.model(seq_batch)
             preds += preds_batch
-            bps += bps_batch
+    assert len(preds) == 1
+    pred = preds[0]
 
     if mxfold2_args.gpu >= 0:
         t = torch.cuda.get_device_properties(0).total_memory
@@ -121,29 +112,16 @@ def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
     else:
         r = t = memory = -1
 
-    if len(preds) == 1:
-        scs = scs[0]
-        preds = preds[0]
-        bps = bps[0]
-
     ttot = time.time() - tstart
 
-    return preds, scs, bps, ttot, memory
+    return pred, ttot, memory
 
 
-def ufold_predict(seqs):
+def ufold_predict(seq):
     tstart = time.time()
 
-    if isinstance(seqs, str):
-        seqs = [seqs]
-
     # clear memory
-    t = torch.cuda.get_device_properties(0).total_memory
-    r = torch.cuda.memory_reserved(0)
-    a = torch.cuda.memory_allocated(0)
-    f = r - a
-    if r > 0.0 * t:
-        torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
 
     # prepare input file
     cwd = os.getcwd()
@@ -151,8 +129,7 @@ def ufold_predict(seqs):
     input_path = Path("data/input.txt")
     output_path = Path("results/input_dot_ct_file.txt")
     with open(input_path, "w") as f:
-        for i, s in enumerate(seqs):
-            f.write(f">{i}\n{s}\n")
+        f.write(f">0\n{seq}\n")
 
     # predict
     main_ufold()
@@ -162,11 +139,9 @@ def ufold_predict(seqs):
 
     # read output
     with open(output_path, "r") as f:
-        preds = f.read()
-    preds = [s for s in preds.split("\n") if s]
-    preds = preds[2::3]
-    if len(preds) == 1:
-        preds = preds[0]
+        pred_txt = f.read()
+    pred_lines = [s for s in pred_txt.split("\n") if s]
+    pred = pred_lines[2]
 
     os.remove(input_path)
     os.remove(output_path)
@@ -174,42 +149,37 @@ def ufold_predict(seqs):
 
     ttot = time.time() - tstart
 
-    return preds, None, None, ttot, memory
+    return pred, ttot, memory
 
 
-def linearfold_predict(seqs):
+def linearfold_predict(seq):
     tstart = time.time()
-
-    if isinstance(seqs, str):
-        seqs = [seqs]
 
     # predict
     cwd = os.getcwd()
     os.chdir(path_linearfold)
-    preds = [os.popen(f"echo {s} | ./linearfold").read() for s in seqs]
+    pred = os.popen(f"echo {seq} | ./linearfold").read()
 
     # read output
-    preds = [
-        r.split("\n")[1].split()[0]
-        if not r.startswith("Unrecognized")
-        else "." * len(s)
-        for s, r in zip(seqs, preds)
-    ]
-    if len(preds) == 1:
-        preds = preds[0]
+    pred = (
+        pred.split("\n")[1].split()[0]
+        if not pred.startswith("Unrecognized")
+        else "." * len(seq)
+    )
 
     os.chdir(cwd)
 
     ttot = time.time() - tstart
 
-    return preds, None, None, ttot, 0.0
+    return pred, ttot, 0.0
 
 
-def rnapar_predict(seqs):
+def rnapar_predict(seq):
+    raise Warning(
+        """The RNAPar wrapper is not working: the tool does not seem
+                  to predict structures"""
+    )
     tstart = time.time()
-
-    if isinstance(seqs, str):
-        seqs = [seqs]
 
     # predict
     cwd = os.getcwd()
@@ -218,12 +188,9 @@ def rnapar_predict(seqs):
         "python predict.py -i ./data/test.fasta -o ./predict/test.data -w ./models/weight-1.h5 -K 6 -C 61 -U 115 -N 53"
     )
 
-    if len(preds) == 1:
-        preds = preds[0]
-
     ttot = time.time() - tstart
 
-    return preds, None, None, ttot, 0.0
+    return pred, ttot, 0.0
 
 
 def rnafold_predict(seq):
@@ -232,7 +199,7 @@ def rnafold_predict(seq):
     pred = output.split("\n")[1].split(" ")[0]
     ttot = time.time() - tstart
 
-    return pred, None, None, ttot, 0.0
+    return pred, ttot, 0.0
 
 
 def rnasubopt_predict(seq, kmax=5, delta=0.1):
@@ -257,10 +224,12 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1):
 
     ttot = time.time() - tstart
 
-    return preds, None, None, ttot, 0.0
+    return preds, ttot, 0.0
 
 
-def probknot_predict(seq):
+def probknot_predict(seq, path_probknot):
+    # path_probknot is the path to the ProbKnot.exe executable
+
     tstart = time.time()
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_probknot_in_{suffix}.seq"
@@ -270,7 +239,7 @@ def probknot_predict(seq):
     with open(path_in, "w") as f:
         f.write(seq)
 
-    os.popen(f"ProbKnot {path_in} {path_middle} --sequence").read()
+    os.popen(f"{path_probknot} {path_in} {path_middle} --sequence").read()
     os.popen(f"ct2dot {path_middle} -1 {path_out}").read()
     pred = open(path_out, "r").read().split("\n")[2]
 
@@ -279,15 +248,15 @@ def probknot_predict(seq):
     os.remove(path_out)
     ttot = time.time() - tstart
 
-    return pred, None, None, ttot, 0.0
+    return pred, ttot, 0.0
 
 
 def ensemble_predict(seq):
     tstart = time.time()
 
-    pred_mx, _, _, _, mem_mx = mxfold2_predict(seq)
-    pred_lf, _, _, _, mem_lf = linearfold_predict(seq)
-    pred_rnaf, _, _, _, mem_rnaf = rnafold_predict(seq)
+    pred_mx, _, mem_mx = mxfold2_predict(seq)
+    pred_lf, _, mem_lf = linearfold_predict(seq)
+    pred_rnaf, _, mem_rnaf = rnafold_predict(seq)
 
     energy_mx = eval_energy(seq, pred_mx)
     energy_lf = eval_energy(seq, pred_lf)
@@ -299,7 +268,7 @@ def ensemble_predict(seq):
     memory = max([mem_mx, mem_lf, mem_rnaf])
     ttot = time.time() - tstart
 
-    return preds, None, None, ttot, memory
+    return preds, ttot, memory
 
 
 def oracle_get_cuts(struct):
@@ -478,7 +447,7 @@ def dividefold_get_cuts(
 
 
 def linearfold_get_cuts(seq):
-    preds, _, _, _, _ = linearfold_predict(seq)
+    preds, _, _ = linearfold_predict(seq)
     return oracle_get_cuts(preds)
 
 
@@ -497,13 +466,13 @@ def dividefold_get_fragment_ranges_preds(
     tstart = time.time()
 
     if max_steps == 0 or len(seq) <= max_length and min_steps <= 0:
-        pred, a, b, ttot, memory = (
+        pred, ttot, memory = (
             predict_fnc(seq)
             if not return_cuts
             else ("." * len(seq), None, None, 0.0, 0.0)
         )
         frag_preds = [(np.array([[0, len(seq) - 1]]).astype(int), pred)]
-        return frag_preds, a, b, ttot, memory
+        return frag_preds, ttot, memory
 
     if struct:
         cuts, outer = oracle_get_cuts(struct)
@@ -542,7 +511,7 @@ def dividefold_get_fragment_ranges_preds(
         if struct:
             substruct = struct[left_b:right_b]
             assert substruct.count("(") == substruct.count(")")
-        this_frag_preds, _, _, _, memory = dividefold_get_fragment_ranges_preds(
+        this_frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
             max_length=max_length,
             max_steps=max_steps,
@@ -572,7 +541,7 @@ def dividefold_get_fragment_ranges_preds(
             right_substruct = struct[left_b_2:right_b_2]
             substruct = left_substruct + right_substruct
             assert substruct.count("(") == substruct.count(")")
-        this_frag_preds, _, _, _, memory = dividefold_get_fragment_ranges_preds(
+        this_frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
             max_length=max_length,
             max_steps=max_steps,
@@ -613,7 +582,7 @@ def dividefold_get_fragment_ranges_preds(
     memory = max(memories)
     ttot = time.time() - tstart
 
-    return frag_preds, None, None, ttot, memory
+    return frag_preds, ttot, memory
 
 
 def dividefold_predict(
@@ -638,7 +607,7 @@ def dividefold_predict(
     if max_steps is not None and max_steps < min_steps:
         raise Warning("max_steps must be greater than min_steps.")
 
-    frag_preds, _, _, _, memory = dividefold_get_fragment_ranges_preds(
+    frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
         seq,
         max_length=max_length,
         max_steps=max_steps,
@@ -729,4 +698,4 @@ def dividefold_predict(
         global_pred = assemble_fragments(frag_preds)
 
     ttot = time.time() - tstart
-    return global_pred, None, None, ttot, memory
+    return global_pred, ttot, memory

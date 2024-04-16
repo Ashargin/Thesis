@@ -193,14 +193,14 @@ def run_preds(
             pred, ttot, memory = dummy_response(len(seq))
         elif allow_errors:
             try:
-                pred, _, _, ttot, memory = fnc(seq, **kwargs)
+                pred, ttot, memory = fnc(seq, **kwargs)
                 if compute_frac is not None:
                     skip_counter += compute_frac - 1
             except (RuntimeError, IndexError, ValueError) as e:
                 print(f"Failed: length {len(seq)}, error {e}")
                 pred, ttot, memory = dummy_response(len(seq))
         else:
-            pred, _, _, ttot, memory = fnc(seq, **kwargs)
+            pred, ttot, memory = fnc(seq, **kwargs)
             if compute_frac is not None:
                 skip_counter += compute_frac - 1
         if evaluate_cutting_model:
