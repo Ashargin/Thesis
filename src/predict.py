@@ -78,6 +78,8 @@ mxfold2_predictor = None
 
 
 def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
+    # https://github.com/mxfold/mxfold2
+
     # Load model if first time
     global mxfold2_args
     global mxfold2_predictor
@@ -116,6 +118,8 @@ def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
 
 
 def ufold_predict(seq):
+    # https://github.com/uci-cbcl/UFold
+
     tstart = time.time()
 
     # clear memory
@@ -193,6 +197,8 @@ def rnapar_predict(seq, path_rnapar):
 
 
 def rnafold_predict(seq):
+    # https://www.tbi.univie.ac.at/RNA/
+
     tstart = time.time()
     output = os.popen(f"echo {seq} | RNAfold").read()
     pred = output.split("\n")[1].split(" ")[0]
@@ -202,6 +208,8 @@ def rnafold_predict(seq):
 
 
 def rnasubopt_predict(seq, kmax=5, delta=0.1):
+    # https://www.tbi.univie.ac.at/RNA/
+
     tstart = time.time()
     output = os.popen(f"echo {seq} | RNAsubopt --sorted").read()
     lines = output.strip().split("\n")[1:]
@@ -229,6 +237,7 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1):
 def probknot_predict(seq, path_probknot):
     # path_probknot is the path to the ProbKnot.exe executable
     # ProbKnot is part of the RNAstructure package
+    # https://rna.urmc.rochester.edu/RNAstructure.html
 
     tstart = time.time()
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
@@ -251,11 +260,11 @@ def probknot_predict(seq, path_probknot):
     return pred, ttot, 0.0
 
 
-def ensemble_predict(seq):
+def ensemble_predict(seq, path_linearfold):
     tstart = time.time()
 
     pred_mx, _, mem_mx = mxfold2_predict(seq)
-    pred_lf, _, mem_lf = linearfold_predict(seq)
+    pred_lf, _, mem_lf = linearfold_predict(seq, path_linearfold)
     pred_rnaf, _, mem_rnaf = rnafold_predict(seq)
 
     energy_mx = eval_energy(seq, pred_mx)
