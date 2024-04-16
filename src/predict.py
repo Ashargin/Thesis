@@ -16,7 +16,6 @@ from tensorflow import keras
 
 path_workdir = Path("..")
 path_ufold = Path("../UFold")
-path_linearfold = Path("../LinearFold")
 path_rnapar = Path("../RNAPar")
 sys.path.append(os.path.abspath(path_workdir))
 sys.path.append(os.path.abspath(path_ufold))
@@ -152,13 +151,14 @@ def ufold_predict(seq):
     return pred, ttot, memory
 
 
-def linearfold_predict(seq):
+def linearfold_predict(seq, path_linearfold):
+    # path_linearfold is the path to the LinearFold repository
+    # https://github.com/LinearFold/LinearFold
+
     tstart = time.time()
 
     # predict
-    cwd = os.getcwd()
-    os.chdir(path_linearfold)
-    pred = os.popen(f"echo {seq} | ./linearfold").read()
+    pred = os.popen(f"echo {seq} | {path_linearfold / 'linearfold'}").read()
 
     # read output
     pred = (
@@ -166,8 +166,6 @@ def linearfold_predict(seq):
         if not pred.startswith("Unrecognized")
         else "." * len(seq)
     )
-
-    os.chdir(cwd)
 
     ttot = time.time() - tstart
 
@@ -229,6 +227,7 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1):
 
 def probknot_predict(seq, path_probknot):
     # path_probknot is the path to the ProbKnot.exe executable
+    # ProbKnot is part of the RNAstructure package
 
     tstart = time.time()
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
