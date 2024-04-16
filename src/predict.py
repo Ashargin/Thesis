@@ -154,11 +154,12 @@ def ufold_predict(seq):
     return pred, ttot, memory
 
 
-def linearfold_predict(seq, path_linearfold):
+def linearfold_predict(seq, path_linearfold="../LinearFold"):
     # path_linearfold is the path to the LinearFold repository
     # https://github.com/LinearFold/LinearFold
 
     tstart = time.time()
+    path_linearfold = Path(path_linearfold)
 
     # predict
     pred = os.popen(f"echo {seq} | {path_linearfold / 'linearfold'}").read()
@@ -175,8 +176,8 @@ def linearfold_predict(seq, path_linearfold):
     return pred, ttot, 0.0
 
 
-def rnapar_predict(seq, path_rnapar):
-    # path_linearfold is the path to the LinearFold repository
+def rnapar_predict(seq, path_rnapar="../RNAPar"):
+    # path_rnapar is the path to the RNAPar repository
     # https://github.com/mianfei71/RNAPar
 
     raise Warning(
@@ -185,6 +186,7 @@ def rnapar_predict(seq, path_rnapar):
     )
 
     tstart = time.time()
+    path_rnapar = Path(path_rnapar)
 
     # predict
     os.popen(
@@ -234,12 +236,14 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1):
     return preds, ttot, 0.0
 
 
-def probknot_predict(seq, path_probknot):
+def probknot_predict(seq, path_probknot="../RNAstructure/exe/ProbKnot.exe"):
     # path_probknot is the path to the ProbKnot.exe executable
     # ProbKnot is part of the RNAstructure package
     # https://rna.urmc.rochester.edu/RNAstructure.html
 
     tstart = time.time()
+    path_probknot = Path(path_probknot)
+
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_probknot_in_{suffix}.seq"
     path_middle = f"temp_probknot_middle_{suffix}.ct"
@@ -260,11 +264,11 @@ def probknot_predict(seq, path_probknot):
     return pred, ttot, 0.0
 
 
-def ensemble_predict(seq, path_linearfold):
+def ensemble_predict(seq, path_linearfold="../LinearFold"):
     tstart = time.time()
 
     pred_mx, _, mem_mx = mxfold2_predict(seq)
-    pred_lf, _, mem_lf = linearfold_predict(seq, path_linearfold)
+    pred_lf, _, mem_lf = linearfold_predict(seq, path_linearfold=path_linearfold)
     pred_rnaf, _, mem_rnaf = rnafold_predict(seq)
 
     energy_mx = eval_energy(seq, pred_mx)
