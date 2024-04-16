@@ -16,7 +16,6 @@ from tensorflow import keras
 
 path_workdir = Path("..")
 path_ufold = Path("../UFold")
-path_rnapar = Path("../RNAPar")
 sys.path.append(os.path.abspath(path_workdir))
 sys.path.append(os.path.abspath(path_ufold))
 import mxfold2
@@ -172,18 +171,20 @@ def linearfold_predict(seq, path_linearfold):
     return pred, ttot, 0.0
 
 
-def rnapar_predict(seq):
+def rnapar_predict(seq, path_rnapar):
+    # path_linearfold is the path to the LinearFold repository
+    # https://github.com/mianfei71/RNAPar
+
     raise Warning(
         """The RNAPar wrapper is not working: the tool does not seem
                   to predict structures"""
     )
+
     tstart = time.time()
 
     # predict
-    cwd = os.getcwd()
-    os.chdir(path_rnapar)
     os.popen(
-        "python predict.py -i ./data/test.fasta -o ./predict/test.data -w ./models/weight-1.h5 -K 6 -C 61 -U 115 -N 53"
+        f"python {path_rnapar / 'predict.py'} -i {path_rnapar / 'data/test.fasta'} -o {path_rnapar / 'predict/test.data'} -w {path_rnapar / 'models/weight-1.h5'} -K 6 -C 61 -U 115 -N 53"
     )
 
     ttot = time.time() - tstart
