@@ -1,5 +1,6 @@
 import os
 import sys
+import subprocess
 import random
 from pathlib import Path
 import time
@@ -14,10 +15,6 @@ import torch
 from torch.utils.data import DataLoader
 from tensorflow import keras
 
-path_workdir = Path("..")
-path_ufold = Path("../UFold")
-sys.path.append(os.path.abspath(path_workdir))
-sys.path.append(os.path.abspath(path_ufold))
 import mxfold2
 from mxfold2.predict import Predict
 from UFold.ufold_predict import main as main_ufold
@@ -117,7 +114,8 @@ def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
     return pred, ttot, memory
 
 
-def ufold_predict(seq):
+def ufold_predict(seq, path_ufold):
+    # path_ufold is the path to the UFold repository
     # https://github.com/uci-cbcl/UFold
 
     tstart = time.time()
@@ -134,7 +132,7 @@ def ufold_predict(seq):
         f.write(f">0\n{seq}\n")
 
     # predict
-    main_ufold()
+    subprocess.run(["python", "ufold_predict.py"])
     t = torch.cuda.get_device_properties(0).total_memory
     r = torch.cuda.memory_reserved(0)
     memory = r / t
@@ -189,8 +187,25 @@ def rnapar_predict(seq, path_rnapar="../RNAPar"):
     path_rnapar = Path(path_rnapar)
 
     # predict
-    os.popen(
-        f"python {path_rnapar / 'predict.py'} -i {path_rnapar / 'data/test.fasta'} -o {path_rnapar / 'predict/test.data'} -w {path_rnapar / 'models/weight-1.h5'} -K 6 -C 61 -U 115 -N 53"
+    subprocess.run(
+        [
+            "python",
+            f"{path_rnapar / 'predict.py'}",
+            "-i",
+            f"{path_rnapar / 'data/test.fasta'}",
+            "-o",
+            f"{path_rnapar / 'predict/test.data'}",
+            "-w",
+            f"{path_rnapar / 'models/weight-1.h5'}",
+            "-K",
+            "6",
+            "-C",
+            "61",
+            "-U",
+            "115",
+            "-N",
+            "53",
+        ]
     )
 
     ttot = time.time() - tstart
