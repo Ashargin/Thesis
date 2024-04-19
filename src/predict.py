@@ -17,7 +17,6 @@ from tensorflow import keras
 
 import mxfold2
 from mxfold2.predict import Predict
-from UFold.ufold_predict import main as main_ufold
 
 from src.utils import format_data, eval_energy, get_scores
 from src.mxfold2_args import Mxfold2Args
@@ -120,19 +119,19 @@ def ufold_predict(seq, path_ufold):
 
     tstart = time.time()
 
+    path_ufold = Path(path_ufold)
+
     # clear memory
     torch.cuda.empty_cache()
 
     # prepare input file
-    cwd = os.getcwd()
-    os.chdir(path_ufold)
     input_path = Path("data/input.txt")
     output_path = Path("results/input_dot_ct_file.txt")
     with open(input_path, "w") as f:
         f.write(f">0\n{seq}\n")
 
     # predict
-    subprocess.run(["python", "ufold_predict.py"])
+    subprocess.run(["python", "ufold_predict.py"], cwd=path_ufold)
     t = torch.cuda.get_device_properties(0).total_memory
     r = torch.cuda.memory_reserved(0)
     memory = r / t
@@ -145,7 +144,6 @@ def ufold_predict(seq, path_ufold):
 
     os.remove(input_path)
     os.remove(output_path)
-    os.chdir(cwd)
 
     ttot = time.time() - tstart
 
@@ -167,45 +165,6 @@ def linearfold_predict(seq, path_linearfold="../LinearFold"):
         pred.split("\n")[1].split()[0]
         if not pred.startswith("Unrecognized")
         else "." * len(seq)
-    )
-
-    ttot = time.time() - tstart
-
-    return pred, ttot, 0.0
-
-
-def rnapar_predict(seq, path_rnapar="../RNAPar"):
-    # path_rnapar is the path to the RNAPar repository
-    # https://github.com/mianfei71/RNAPar
-
-    raise Warning(
-        """The RNAPar wrapper is not working: the tool does not seem
-                  to predict structures"""
-    )
-
-    tstart = time.time()
-    path_rnapar = Path(path_rnapar)
-
-    # predict
-    subprocess.run(
-        [
-            "python",
-            f"{path_rnapar / 'predict.py'}",
-            "-i",
-            f"{path_rnapar / 'data/test.fasta'}",
-            "-o",
-            f"{path_rnapar / 'predict/test.data'}",
-            "-w",
-            f"{path_rnapar / 'models/weight-1.h5'}",
-            "-K",
-            "6",
-            "-C",
-            "61",
-            "-U",
-            "115",
-            "-N",
-            "53",
-        ]
     )
 
     ttot = time.time() - tstart
