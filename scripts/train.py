@@ -173,7 +173,8 @@ while True:
     print(losses)
     print("SAVED" if must_save else "DISCARDED")
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+
 #
 # loss = history.history["loss"]
 # val_loss = history.history["val_loss"]
@@ -190,39 +191,39 @@ while True:
 # )
 # plt.show()
 #
-my_model = keras.models.load_model(Path("resources/models/BiLSTM"), compile=False)
+my_model = keras.models.load_model(Path("resources/models/CNN1D"), compile=False)
 my_model.compile(
     optimizer="adam",
     loss=inv_exp_distance_to_cut_loss,
     run_eagerly=True,
 )
-# test_datagen = motif_data_generator(Path("resources/data_splits/test_sequencewise"))
-#
-#
-# def plot_cut_probabilities():
-#     seq_mat, cuts_mat = next(test_datagen)
-#     preds = my_model(seq_mat).numpy().ravel()
-#     cuts_mat = cuts_mat.ravel().astype(int)
-#
-#     X = np.arange(len(preds)) + 1
-#     for i, x in enumerate(X[cuts_mat]):
-#         plt.plot(
-#             [x, x],
-#             [0, 1],
-#             color="black",
-#             linewidth=1.5,
-#             label="True cut points" if i == 0 else "",
-#         )
-#     plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
-#
-#     peaks = signal.find_peaks(preds, height=0.28, distance=12)[0]
-#     plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
-#
-#     plt.xlim([X[0], X[-1]])
-#     plt.ylim([0, 1])
-#
-#     plt.title(
-#         "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
-#     )
-#     plt.legend()
-#     plt.show()
+test_datagen = motif_data_generator(Path("resources/data_splits/test_sequencewise"))
+
+
+def plot_cut_probabilities():
+    seq_mat, cuts_mat = next(test_datagen)
+    preds = my_model(seq_mat).numpy().ravel()
+    cuts_mat = cuts_mat.ravel().astype(int)
+
+    X = np.arange(len(preds)) + 1
+    for i, x in enumerate(X[cuts_mat]):
+        plt.plot(
+            [x, x],
+            [0, 1],
+            color="black",
+            linewidth=1.5,
+            label="True cut points" if i == 0 else "",
+        )
+    plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
+
+    peaks = signal.find_peaks(preds, height=0.28, distance=12)[0]
+    plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
+
+    plt.xlim([X[0], X[-1]])
+    plt.ylim([0, 1])
+
+    plt.title(
+        "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
+    )
+    plt.legend()
+    plt.show()
