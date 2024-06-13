@@ -29,8 +29,8 @@ df_motifs = df_motifs[df_motifs.time < 0.012].reset_index(drop=True)
 
 
 def struct_to_pairs(struct):
-    open_brackets = ["(", "[", "<", "{", "A", "B", "C", "D"]
-    close_brackets = [")", "]", ">", "}", "a", "b", "c", "d"]
+    open_brackets = ["(", "[", "<", "{"] + [chr(65 + i) for i in range(26)]
+    close_brackets = [")", "]", ">", "}"] + [chr(97 + i) for i in range(26)]
     opened = [[] for _ in range(len(open_brackets))]
     pairs = {}
     for i, char in enumerate(struct):
@@ -52,6 +52,51 @@ def struct_to_pairs(struct):
 
     pairs = np.array([pairs[i + 1] for i in range(len(struct))])
     return pairs
+
+
+def pairs_to_struct(pairs):
+    open_brackets = ["(", "[", "<", "{"] + [chr(65 + i) for i in range(26)]
+    close_brackets = [")", "]", ">", "}"] + [chr(97 + i) for i in range(26)]
+    struct = ["."] * len(pairs)
+    bounds = []
+
+    def get_subbounds(new_left, new_right, old_right):
+        subbounds = [(new_left, new_right)]
+        if new_right < old_right - 2:
+            subbounds.append((new_right, old_right))
+        return subbounds
+
+    for i, j in enumerate(pairs):
+        i += 1
+        if (j == 0) or (i > j):
+            continue
+
+        bracket_type = 0
+        while True:
+            if len(bounds) == bracket_type:
+                bounds.append(get_subbounds(i, j, len(pairs) + 1))
+                struct[i - 1] = open_brackets[bracket_type]
+                struct[j - 1] = close_brackets[bracket_type]
+                break
+
+            # Try to insert (i, j) in bracket_type bounds
+            bracket_bounds = bounds[bracket_type]
+            for k, b in enumerate(bracket_bounds):
+                if (i > b[0]) and (j < b[1]):
+                    bounds[bracket_type] += get_subbounds(i, j, b[1])
+                    bounds[bracket_type].pop(k)  # remove old outer bound
+                    struct[i - 1] = open_brackets[bracket_type]
+                    struct[j - 1] = close_brackets[bracket_type]
+                    break
+
+            # If failed, look at next bracket_type
+            else:
+                bracket_type += 1
+                continue
+            # If succeeded, escape while loop
+            break
+
+    return "".join(struct)
 
 
 def seq2kmer(seq, k):
