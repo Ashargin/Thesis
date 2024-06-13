@@ -18,7 +18,7 @@ from tensorflow import keras
 import mxfold2
 from mxfold2.predict import Predict
 
-from src.utils import format_data, eval_energy, get_scores
+from src.utils import format_data, eval_energy, get_scores, pairs_to_struct
 from src.mxfold2_args import Mxfold2Args
 from src.models.loss import inv_exp_distance_to_cut_loss
 
@@ -256,6 +256,46 @@ def ensemble_predict(seq, path_linearfold="../LinearFold"):
     ttot = time.time() - tstart
 
     return preds, ttot, memory
+
+
+def knotfold_predict(seq, path_knotfold="../KnotFold"):
+    # path_knotfold is the path to the KnotFold repository
+    # https://github.com/gongtiansu/KnotFold
+
+    tstart = time.time()
+
+    path_knotfold = Path(path_knotfold)
+
+    # clear memory
+    torch.cuda.empty_cache()
+
+    # prepare input file
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
+    temp_rna_name = f"TEMP_RNA_NAME_{suffix}"
+    path_in = f"temp_knotfold_in_{suffix}.fasta"
+    path_out = f"{temp_rna_name}.bpseq"
+    with open(path_knotfold / path_in, "w") as f:
+        f.write(f">{temp_rna_name}\n{seq}\n")
+
+    # predict
+    subprocess.run(["python", "KnotFold.py", "-i", path_in, "-o", ".", "--cuda"],
+                                                                cwd=path_knotfold)
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0)
+    memory = r / t
+
+    # read output
+    with open(path_knotfold / path_out, "r") as f:
+        pred_txt = f.read()
+    pairs = np.array([int(line.split(" ")[-1]) for line in pred_txt.strip().split("\n")])
+    pred = pairs_to_struct(pairs)
+
+    os.remove(path_knotfold / path_in)
+    os.remove(path_knotfold / path_out)
+
+    ttot = time.time() - tstart
+
+    return pred, ttot, memory
 
 
 def oracle_get_cuts(struct):
