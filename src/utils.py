@@ -31,6 +31,12 @@ df_motifs = df_motifs[df_motifs.time < 0.012].reset_index(drop=True)
 def struct_to_pairs(struct):
     open_brackets = ["(", "[", "<", "{"] + [chr(65 + i) for i in range(26)]
     close_brackets = [")", "]", ">", "}"] + [chr(97 + i) for i in range(26)]
+
+    # Add even more bracket characters in case there are too many pseudoknot levels
+    bonus_characters = [chr(i) for i in range(256, 383) if i not in [312, 329, 376]]
+    open_brackets += bonus_characters[0::2]
+    close_brackets += bonus_characters[1::2]
+
     opened = [[] for _ in range(len(open_brackets))]
     pairs = {}
     for i, char in enumerate(struct):
@@ -57,6 +63,12 @@ def struct_to_pairs(struct):
 def pairs_to_struct(pairs):
     open_brackets = ["(", "[", "<", "{"] + [chr(65 + i) for i in range(26)]
     close_brackets = [")", "]", ">", "}"] + [chr(97 + i) for i in range(26)]
+
+    # Add even more bracket characters in case there are too many pseudoknot levels
+    bonus_characters = [chr(i) for i in range(256, 383) if i not in [312, 329, 376]]
+    open_brackets += bonus_characters[0::2]
+    close_brackets += bonus_characters[1::2]
+
     struct = ["."] * len(pairs)
     bounds = []
 
