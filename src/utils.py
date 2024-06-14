@@ -70,6 +70,8 @@ def pairs_to_struct(pairs):
         i += 1
         if (j == 0) or (i > j):
             continue
+        if pairs[pairs[i - 1] - 1] != i:  # malformed pairs
+            continue
 
         bracket_type = 0
         while True:
@@ -282,10 +284,11 @@ def run_preds(
             f_out.write(line)
 
 
-def get_scores(y, y_hat):
-    # Remove pseudoknots
-    y = re.sub("[^\(\)\.]", ".", y)
-    y_hat = re.sub("[^\(\)\.]", ".", y_hat)
+def get_scores(y, y_hat, with_pseudoknots=False):
+    if not with_pseudoknots:
+        # Remove pseudoknots
+        y = re.sub("[^\(\)\.]", ".", y)
+        y_hat = re.sub("[^\(\)\.]", ".", y_hat)
 
     assert len(y) == len(y_hat)
     y_pairs = struct_to_pairs(y)
@@ -321,7 +324,7 @@ def get_scores(y, y_hat):
     return this_ppv, this_sen, this_fscore, this_mcc
 
 
-def get_scores_df(path_in):
+def get_scores_df(path_in, with_pseudoknots=False):
     # Read data
     df_preds = pd.read_csv(path_in)
     n = df_preds.shape[0]
@@ -334,7 +337,9 @@ def get_scores_df(path_in):
     for i, (y, y_hat) in enumerate(zip(df_preds.struct, df_preds.pred)):
         if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
-        this_ppv, this_sen, this_fscore, this_mcc = get_scores(y, y_hat)
+        this_ppv, this_sen, this_fscore, this_mcc = get_scores(
+            y, y_hat, with_pseudoknots=with_pseudoknots
+        )
         ppv.append(this_ppv)
         sen.append(this_sen)
         fscore.append(this_fscore)
