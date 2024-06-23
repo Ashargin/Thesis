@@ -50,7 +50,7 @@ model_name = (
     "_" + model_name if global_predict_fnc.__name__ == "dividefold_predict" else ""
 )
 max_length_name = (
-    f"_{meta if max_length is None else max_length}"
+    f"_{'meta' if max_length is None else max_length}"
     if global_predict_fnc.__name__ == "dividefold_predict"
     else ""
 )
