@@ -261,6 +261,9 @@ def knotfold_predict(seq, path_knotfold="../KnotFold"):
     # path_knotfold is the path to the KnotFold repository
     # https://github.com/gongtiansu/KnotFold
 
+    if len(seq) == 1:  # to avoid IndexError from KnotFold for sequences of length 1
+        return ".", 0.0, 0.0
+
     tstart = time.time()
     path_knotfold = Path(path_knotfold)
 
@@ -276,8 +279,9 @@ def knotfold_predict(seq, path_knotfold="../KnotFold"):
         f.write(f">{temp_rna_name}\n{seq}\n")
 
     # predict
-    res = subprocess.run(["python", "KnotFold.py", "-i", path_in, "-o", ".", "--cuda"],
-                                                                cwd=path_knotfold)
+    res = subprocess.run(
+        ["python", "KnotFold.py", "-i", path_in, "-o", ".", "--cuda"], cwd=path_knotfold
+    )
     t = torch.cuda.get_device_properties(0).total_memory
     r = torch.cuda.memory_reserved(0)
     memory = r / t
@@ -285,10 +289,14 @@ def knotfold_predict(seq, path_knotfold="../KnotFold"):
     # read output
     os.remove(path_knotfold / path_in)
     if res.returncode != 0:
-        raise MemoryError(f"The KnotFold script could not run properly. The input sequence may be too long. Avoid sequences longer than 2000 nucleotides when using KnotFold. If the sequence is shorter, then something else in the KnotFold script may have caused this error. Look in the traceback from the KnotFold script for more information.")
+        raise MemoryError(
+            f"The KnotFold script could not run properly. The input sequence may be too long. Avoid sequences longer than 2000 nucleotides when using KnotFold. If the sequence is shorter, then something else in the KnotFold script may have caused this error. Look in the traceback from the KnotFold script for more information."
+        )
     with open(path_knotfold / path_out, "r") as f:
         pred_txt = f.read()
-    pairs = np.array([int(line.split(" ")[-1]) for line in pred_txt.strip().split("\n")])
+    pairs = np.array(
+        [int(line.split(" ")[-1]) for line in pred_txt.strip().split("\n")]
+    )
     pred = pairs_to_struct(pairs)
 
     os.remove(path_knotfold / path_out)
