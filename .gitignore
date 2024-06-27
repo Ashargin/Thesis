@@ -6,7 +6,6 @@ carnaval_dataset
 resources/results
 resources/clusters*
 resources/data_splits
-resources/mxfold2_models
 resources/models_old
 Rfam_data
 rnapar_raw_data
