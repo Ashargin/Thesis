@@ -656,7 +656,7 @@ def dividefold_predict(
     )
 
     if return_cuts:
-        return frag_preds, None, None, None, None
+        return frag_preds, None, None
 
     def assemble_fragments(in_frag_preds):
         connex_frags = []
