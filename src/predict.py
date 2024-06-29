@@ -502,9 +502,7 @@ def dividefold_get_fragment_ranges_preds(
 
     if max_steps == 0 or len(seq) <= max_length and min_steps <= 0:
         pred, ttot, memory = (
-            predict_fnc(seq)
-            if not return_cuts
-            else ("." * len(seq), None, None, 0.0, 0.0)
+            predict_fnc(seq) if not return_cuts else ("." * len(seq), 0.0, 0.0)
         )
         frag_preds = [(np.array([[0, len(seq) - 1]]).astype(int), pred)]
         return frag_preds, ttot, memory
@@ -656,7 +654,8 @@ def dividefold_predict(
     )
 
     if return_cuts:
-        return frag_preds, None, None
+        ttot = time.time() - tstart
+        return frag_preds, ttot, memory
 
     def assemble_fragments(in_frag_preds):
         connex_frags = []
