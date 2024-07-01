@@ -7,6 +7,8 @@ import seaborn as sns
 from pathlib import Path
 import datetime
 
+from src.cogent.struct.knots import inc_length as cogent_remove_pseudoknots
+
 # import fm
 # import torch
 
@@ -52,7 +54,7 @@ def struct_to_pairs(struct):
             pairs[i + 1] = last_opened
         elif char == "?":
             assert all([c == "?" for c in struct])
-            return {i + 1: 0 for i in range(len(struct))}
+            return np.array([0 for i in range(len(struct))])
         else:
             raise Warning("Unknown bracket !")
 
@@ -111,6 +113,34 @@ def pairs_to_struct(pairs):
             break
 
     return "".join(struct)
+
+
+def remove_pseudoknots(struct_or_pairs):
+    # Wrapper for the pseudoknot removal functions from S. Smit, K. Rother, J. Heringa, and R. Knight
+    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2248259/
+    # https://github.com/pycogent/pycogent/blob/f720cc3753429d130f9e9bc0756b8878c3d50ef2/cogent/struct/knots.py
+    seq_format = "struct" if isinstance(struct_or_pairs, str) else "pairs"
+    pairs = (
+        struct_to_pairs(struct_or_pairs) if seq_format == "struct" else struct_or_pairs
+    )
+
+    cogent_pairs = []
+    for i, j in enumerate(pairs):
+        i += 1
+        if (j > 0) and (i < j):
+            cogent_pairs.append((i, j))
+    cogent_pseudofree_pairs = cogent_remove_pseudoknots(cogent_pairs)
+    assert set(cogent_pseudofree_pairs).issubset(cogent_pairs)
+
+    pseudofree_pairs = np.zeros_like(pairs)
+    for i, j in cogent_pseudofree_pairs:
+        pseudofree_pairs[i - 1] = j
+        pseudofree_pairs[j - 1] = i
+
+    pseudofree_struct = pairs_to_struct(pseudofree_pairs)
+    assert set(pseudofree_struct).issubset({".", "(", ")"})
+
+    return pseudofree_struct if seq_format == "struct" else pseudofree_pairs
 
 
 def seq2kmer(seq, k):
@@ -296,12 +326,7 @@ def run_preds(
             f_out.write(line)
 
 
-def get_scores(y, y_hat, with_pseudoknots=False):
-    if not with_pseudoknots:
-        # Remove pseudoknots
-        y = re.sub("[^\(\)\.]", ".", y)
-        y_hat = re.sub("[^\(\)\.]", ".", y_hat)
-
+def get_scores(y, y_hat):
     assert len(y) == len(y_hat)
     y_pairs = struct_to_pairs(y)
     y_hat_pairs = struct_to_pairs(y_hat)
@@ -336,26 +361,34 @@ def get_scores(y, y_hat, with_pseudoknots=False):
     return this_ppv, this_sen, this_fscore, this_mcc
 
 
-def get_scores_df(path_in, with_pseudoknots=False):
+def get_scores_df(path_in, without_pseudoknots=False):
     # Read data
     df_preds = pd.read_csv(path_in)
     n = df_preds.shape[0]
 
     # Compute scores
-    ppv = []
-    sen = []
     fscore = []
-    mcc = []
+    struct_nopk = []
+    pred_nopk = []
+    fscore_nopk = []
     for i, (y, y_hat) in enumerate(zip(df_preds.struct, df_preds.pred)):
         if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
-        this_ppv, this_sen, this_fscore, this_mcc = get_scores(
-            y, y_hat, with_pseudoknots=with_pseudoknots
-        )
-        ppv.append(this_ppv)
-        sen.append(this_sen)
+
+        _, _, this_fscore, _ = get_scores(y, y_hat)
         fscore.append(this_fscore)
-        mcc.append(this_mcc)
+
+        if without_pseudoknots:
+            y_nopk = remove_pseudoknots(y)
+            y_hat_nopk = remove_pseudoknots(y_hat)
+            _, _, this_fscore_nopk, _ = get_scores(y_nopk, y_hat_nopk)
+            struct_nopk.append(y_nopk)
+            pred_nopk.append(y_hat_nopk)
+            fscore_nopk.append(this_fscore_nopk)
+        else:
+            struct_nopk.append(np.nan)
+            pred_nopk.append(np.nan)
+            fscore_nopk.append(np.nan)
 
     # Create dataframe
     skipped = np.array(["?" in p for p in df_preds.pred])
@@ -364,20 +397,24 @@ def get_scores_df(path_in, with_pseudoknots=False):
             "rna_name": df_preds.rna_name,
             "seq": df_preds.seq,
             "struct": df_preds.struct,
+            "struct_nopk": struct_nopk,
             "pred": df_preds.pred,
+            "pred_nopk": pred_nopk,
             "length": df_preds.seq.apply(len),
-            "ppv": ppv,
-            "sen": sen,
             "fscore": fscore,
-            "mcc": mcc,
+            "fscore_nopk": fscore_nopk,
             "time": df_preds.ttot,
             "memory": df_preds.memory,
         }
     )
+    if not without_pseudoknots:
+        data.drop(["struct_nopk", "pred_nopk", "fscore_nopk"], axis=1, inplace=True)
+
     cutting_metric_filename = (
         path_in.name.replace("_mx_", "_")
         .replace("_rnaf_", "_")
         .replace("_lf_", "_")
+        .replace("_kf_", "_")
         .replace("_sub_", "_")
         .replace("_ens_", "_")
         .replace(".csv", "_cuttingmetrics.csv")
