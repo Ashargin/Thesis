@@ -635,7 +635,7 @@ def dividefold_predict(
     tstart = time.time()
 
     if max_length is None:
-        if predict_fnc != "knotfold_predict":
+        if predict_fnc.__name__ != "knotfold_predict":
             max_length = 2000 if len(seq) > 2500 else 400
         else:
             max_length = 1000
