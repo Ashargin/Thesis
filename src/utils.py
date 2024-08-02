@@ -131,19 +131,15 @@ def remove_pseudoknots(struct_or_pairs, return_pseudoknots=False):
         i += 1
         if (j > 0) and (i < j):
             cogent_pairs.append((i, j))
-    cogent_pseudofree_pairs = None
-    cogent_pseudoknot_pairs = None
-    if return_pseudoknots:
-        cogent_pseudofree_pairs, cogent_pseudoknot_pairs = cogent_remove_pseudoknots(
-            cogent_pairs, return_removed=True
-        )
-        assert set(cogent_pseudofree_pairs).issubset(cogent_pairs)
-        assert set(cogent_pseudoknot_pairs) == set(cogent_pairs) - set(
-            cogent_pseudofree_pairs
-        )
-    else:
-        cogent_pseudofree_pairs = cogent_remove_pseudoknots(cogent_pairs)
-        assert set(cogent_pseudofree_pairs).issubset(cogent_pairs)
+
+    # Call the pseudoknot removal function
+    cogent_pseudofree_pairs, cogent_pseudoknot_pairs = cogent_remove_pseudoknots(
+        cogent_pairs, return_removed=True
+    )
+    assert set(cogent_pseudofree_pairs).issubset(cogent_pairs)
+    assert set(cogent_pseudoknot_pairs) == set(cogent_pairs) - set(
+        cogent_pseudofree_pairs
+    )
 
     def cogent_to_numpy(cogent_pairs):
         numpy_pairs = np.zeros_like(pairs)
@@ -153,16 +149,10 @@ def remove_pseudoknots(struct_or_pairs, return_pseudoknots=False):
         return numpy_pairs
 
     pseudofree_pairs = cogent_to_numpy(cogent_pseudofree_pairs)
-    pseudoknot_pairs = (
-        cogent_to_numpy(cogent_pseudoknot_pairs) if return_pseudoknots else None
-    )
+    pseudoknot_pairs = cogent_to_numpy(cogent_pseudoknot_pairs)
 
     pseudofree_struct = pairs_to_struct(pseudofree_pairs)
-    pseudoknot_struct = (
-        pairs_to_struct(pseudoknot_pairs, start_bracket=1)
-        if return_pseudoknots
-        else None
-    )
+    pseudoknot_struct = pairs_to_struct(pseudoknot_pairs, start_bracket=1)
     assert set(pseudofree_struct).issubset({".", "(", ")"})
 
     if return_pseudoknots:
