@@ -348,16 +348,22 @@ def run_preds(
             f_out.write(line)
 
 
-def get_scores(y, y_hat):
-    assert len(y) == len(y_hat)
+def get_scores(y, yhat, yhat_optional=None):
+    yhat_optional = "." * len(y) if yhat_optional is None else yhat_optional
+    assert len(y) == len(yhat) == len(yhat_optional)
+
     y_pairs = struct_to_pairs(y)
-    y_hat_pairs = struct_to_pairs(y_hat)
+    yhat_pairs = struct_to_pairs(yhat)
+    yhat_optional_pairs = struct_to_pairs(yhat_optional)
 
     # MXfold2 format
     # https://github.com/mxfold/mxfold2/blob/51b213676708bebd664f0c40873a46e09353e1ee/mxfold2/compbpseq.py#L32
     L = len(y)
     ref = {(i + 1, j) for i, j in enumerate(y_pairs) if i + 1 < j}
-    pred = {(i + 1, j) for i, j in enumerate(y_hat_pairs) if i + 1 < j}
+    pred = {(i + 1, j) for i, j in enumerate(yhat_pairs) if i + 1 < j}
+    optional = {(i + 1, j) for i, j in enumerate(yhat_optional_pairs) if i + 1 < j}
+    ref = ref.union(optional.intersection(ref))
+
     tp = len(ref & pred)
     fp = len(pred - ref)
     fn = len(ref - pred)
@@ -370,47 +376,60 @@ def get_scores(y, y_hat):
         if (this_ppv + this_sen) > 0
         else 0.0
     )
-    this_mcc = (
-        (tp * tn - fp * fn)
-        / np.sqrt(tp + fp)
-        / np.sqrt(tp + fn)
-        / np.sqrt(tn + fp)
-        / np.sqrt(tn + fn)
-        if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
-        else 0.0
-    )
+    # this_mcc = (
+    #     (tp * tn - fp * fn)
+    #     / np.sqrt(tp + fp)
+    #     / np.sqrt(tp + fn)
+    #     / np.sqrt(tn + fp)
+    #     / np.sqrt(tn + fn)
+    #     if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
+    #     else 0.0
+    # )
 
-    return this_ppv, this_sen, this_fscore, this_mcc
+    return this_sen, this_fscore
 
 
-def get_scores_df(path_in, without_pseudoknots=False):
+def get_scores_df(path_in):
     # Read data
+    path_in = Path(path_in)
     df_preds = pd.read_csv(path_in)
     n = df_preds.shape[0]
 
     # Compute scores
-    fscore = []
-    struct_nopk = []
-    pred_nopk = []
-    fscore_nopk = []
-    for i, (y, y_hat) in enumerate(zip(df_preds.struct, df_preds.pred)):
+    structs_rebuilt = []
+    preds_rebuilt = []
+    fscores = []
+    sens_nopk = []
+    fscores_nopk = []
+    sens_pk = []
+    fscores_pk = []
+    print(f"Processing {path_in.name}...")
+    for i, (y, yhat) in enumerate(zip(df_preds.struct, df_preds.pred)):
         if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
 
-        _, _, this_fscore, _ = get_scores(y, y_hat)
-        fscore.append(this_fscore)
+        y_nopk, y_pk = remove_pseudoknots(y, return_pseudoknots=True)
+        yhat_nopk, yhat_pk = remove_pseudoknots(yhat, return_pseudoknots=True)
+        y = "".join([db1 if db2 == "." else db2 for db1, db2 in zip(y_nopk, y_pk)])
+        yhat = "".join(
+            [db1 if db2 == "." else db2 for db1, db2 in zip(yhat_nopk, yhat_pk)]
+        )
 
-        if without_pseudoknots:
-            y_nopk = remove_pseudoknots(y)
-            y_hat_nopk = remove_pseudoknots(y_hat)
-            _, _, this_fscore_nopk, _ = get_scores(y_nopk, y_hat_nopk)
-            struct_nopk.append(y_nopk)
-            pred_nopk.append(y_hat_nopk)
-            fscore_nopk.append(this_fscore_nopk)
-        else:
-            struct_nopk.append(np.nan)
-            pred_nopk.append(np.nan)
-            fscore_nopk.append(np.nan)
+        structs_rebuilt.append(y)
+        preds_rebuilt.append(yhat)
+
+        _, this_fscore = get_scores(y, yhat)
+        fscores.append(this_fscore)
+
+        this_sen_nopk, this_fscore_nopk = get_scores(
+            y_nopk, yhat_nopk, yhat_optional=yhat_pk
+        )
+        sens_nopk.append(this_sen_nopk)
+        fscores_nopk.append(this_fscore_nopk)
+
+        this_sen_pk, this_fscore_pk = get_scores(y_pk, yhat_pk, yhat_optional=yhat_nopk)
+        sens_pk.append(this_sen_pk)
+        fscores_pk.append(this_fscore_pk)
 
     # Create dataframe
     skipped = np.array(["?" in p for p in df_preds.pred])
@@ -418,19 +437,18 @@ def get_scores_df(path_in, without_pseudoknots=False):
         {
             "rna_name": df_preds.rna_name,
             "seq": df_preds.seq,
-            "struct": df_preds.struct,
-            "struct_nopk": struct_nopk,
-            "pred": df_preds.pred,
-            "pred_nopk": pred_nopk,
+            "struct": structs_rebuilt,
+            "pred": preds_rebuilt,
             "length": df_preds.seq.apply(len),
-            "fscore": fscore,
-            "fscore_nopk": fscore_nopk,
+            "fscore": fscores,
+            "fscore_nopk": fscores_nopk,
+            "fscore_pk": fscores_pk,
+            "sen_nopk": sens_nopk,
+            "sen_pk": sens_pk,
             "time": df_preds.ttot,
             "memory": df_preds.memory,
         }
     )
-    if not without_pseudoknots:
-        data.drop(["struct_nopk", "pred_nopk", "fscore_nopk"], axis=1, inplace=True)
 
     cutting_metric_filename = (
         path_in.name.replace("_mx_", "_")
@@ -457,22 +475,7 @@ def get_scores_df(path_in, without_pseudoknots=False):
     data.memory = data.memory.astype(float)
     data = data.iloc[~skipped, :]
 
-    # if n < 10:
-    #     return data
-    # ax = sns.kdeplot(data=data, x="length")
-    # x, y = ax.get_lines()[-1].get_data()
-    #
-    # def inverse_density(length):
-    #     upper_x_bound = (x <= length).argmin()
-    #     lower_x, upper_x = x[upper_x_bound - 1], x[upper_x_bound]
-    #     lower_y, upper_y = y[upper_x_bound - 1], y[upper_x_bound]
-    #     perc = (length - lower_x) / (upper_x - lower_x)
-    #     val = lower_y + perc * (upper_y - lower_y)
-    #     return 1 / val
-    #
-    # data["weight"] = data.length.apply(inverse_density)
-    # data.weight /= data.weight.mean()
-    # plt.close()
+    print("Done.")
 
     return data
 
