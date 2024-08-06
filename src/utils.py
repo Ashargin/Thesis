@@ -413,8 +413,6 @@ def get_scores_df(path_in):
     n = df_preds.shape[0]
 
     # Compute scores
-    structs_rebuilt = []
-    preds_rebuilt = []
     fscores = []
     sens_nopk = []
     sens_pk = []
@@ -423,15 +421,8 @@ def get_scores_df(path_in):
         if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
 
-        y_nopk, y_pk = remove_pseudoknots(y, return_pseudoknots=True)
-        yhat_nopk, yhat_pk = remove_pseudoknots(yhat, return_pseudoknots=True)
-        y = "".join([db1 if db2 == "." else db2 for db1, db2 in zip(y_nopk, y_pk)])
-        yhat = "".join(
-            [db1 if db2 == "." else db2 for db1, db2 in zip(yhat_nopk, yhat_pk)]
-        )
-
-        structs_rebuilt.append(y)
-        preds_rebuilt.append(yhat)
+        y_nopk = re.sub("[^\(\)\.]", ".", y)
+        y_pk = re.sub("[\(\)]", ".", y)
 
         _, this_fscore = get_scores(y, yhat)
         fscores.append(this_fscore)
@@ -448,8 +439,8 @@ def get_scores_df(path_in):
         {
             "rna_name": df_preds.rna_name,
             "seq": df_preds.seq,
-            "struct": structs_rebuilt,
-            "pred": preds_rebuilt,
+            "struct": df_preds.struct,
+            "pred": df_preds.pred,
             "length": df_preds.seq.apply(len),
             "fscore": fscores,
             "sen_nopk": sens_nopk,
