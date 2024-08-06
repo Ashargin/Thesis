@@ -17,11 +17,11 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
 # Settings
-global_predict_fnc = knotfold_predict
-model_filename = None
-predict_fnc = None
+global_predict_fnc = dividefold_predict
+model_filename = "oracle"
+predict_fnc = knotfold_predict
 evaluate_cutting_model = False
-max_length = None
+max_length = 800
 
 # Load model
 model = None

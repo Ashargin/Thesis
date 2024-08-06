@@ -18,10 +18,10 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "MLP"
+model_filename = "CNN1D"
 predict_fnc = linearfold_predict
 evaluate_cutting_model = False
-max_length = None
+max_length = 400
 
 # Load model
 model = None
@@ -66,7 +66,9 @@ kwargs = (
 )
 
 # Run cutting metrics
-for dataset in ["16S23S", "curated_lncRNAs", "test_familywise", "test_sequencewise"]:
+for dataset in [
+    "16S23S"
+]:  # , "curated_lncRNAs", "test_familywise", "test_sequencewise"]:
     dataset_name = dataset.replace("test_", "").replace("_lncRNAs", "")
     run_preds(
         global_predict_fnc,

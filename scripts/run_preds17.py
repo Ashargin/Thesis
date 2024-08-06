@@ -17,11 +17,11 @@ from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
 # Settings
-global_predict_fnc = dividefold_predict
-model_filename = "CNN1D"
-predict_fnc = linearfold_predict
+global_predict_fnc = knotfold_predict
+model_filename = None
+predict_fnc = None
 evaluate_cutting_model = False
-max_length = 1200
+max_length = None
 
 # Load model
 model = None
@@ -66,7 +66,9 @@ kwargs = (
 )
 
 # Run cutting metrics
-for dataset in ["16S23S", "curated_lncRNAs", "test_familywise", "test_sequencewise"]:
+for dataset in [
+    "16S23S"
+]:  # , "curated_lncRNAs", "test_familywise", "test_sequencewise"]:
     dataset_name = dataset.replace("test_", "").replace("_lncRNAs", "")
     run_preds(
         global_predict_fnc,

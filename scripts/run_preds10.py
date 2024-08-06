@@ -21,7 +21,7 @@ global_predict_fnc = dividefold_predict
 model_filename = "oracle"
 predict_fnc = knotfold_predict
 evaluate_cutting_model = False
-max_length = 200
+max_length = 600
 
 # Load model
 model = None

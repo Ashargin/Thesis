@@ -18,10 +18,10 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "CNN1D"
-predict_fnc = linearfold_predict
+model_filename = "oracle"
+predict_fnc = knotfold_predict
 evaluate_cutting_model = False
-max_length = 400
+max_length = 1200
 
 # Load model
 model = None

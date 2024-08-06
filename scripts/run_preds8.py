@@ -18,10 +18,10 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "MLP"
+model_filename = "oracle"
 predict_fnc = knotfold_predict
 evaluate_cutting_model = False
-max_length = None
+max_length = 200
 
 # Load model
 model = None
