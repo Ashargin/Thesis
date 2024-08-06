@@ -18,7 +18,13 @@ from tensorflow import keras
 import mxfold2
 from mxfold2.predict import Predict
 
-from src.utils import format_data, eval_energy, get_scores, pairs_to_struct
+from src.utils import (
+    format_data,
+    eval_energy,
+    get_scores,
+    pairs_to_struct,
+    remove_pseudoknots,
+)
 from src.mxfold2_args import Mxfold2Args
 from src.models.loss import inv_exp_distance_to_cut_loss
 
@@ -311,7 +317,7 @@ def oracle_get_cuts(struct):
         return [], True
 
     # Determine depth levels
-    struct = re.sub("[^\(\)\.]", ".", struct)
+    struct = remove_pseudoknots(struct)
     depths = []
     count = 0
     for c in struct:
