@@ -317,7 +317,7 @@ def oracle_get_cuts(struct):
         return [], True
 
     # Determine depth levels
-    struct = remove_pseudoknots(struct)
+    struct = re.sub("[^\(\)\.]", ".", struct)
     depths = []
     count = 0
     for c in struct:
@@ -648,6 +648,11 @@ def dividefold_predict(
 
     if max_steps is not None and max_steps < min_steps:
         raise Warning("max_steps must be greater than min_steps.")
+
+    if struct:
+        struct = optimize_pseudoknots(struct)
+    if struct_to_print_fscores:
+        struct_to_print_fscores = optimize_pseudoknots(struct_to_print_fscores)
 
     frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
         seq,
