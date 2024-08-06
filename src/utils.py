@@ -67,7 +67,7 @@ def pairs_to_struct(pairs):
         pairs, return_pseudoknots=True
     )
     stacked = np.vstack([pseudofree_pairs, pseudoknot_pairs])
-    assert stacked.min(axis=0).max()
+    assert stacked.min(axis=0).max() == 0
 
     pseudofree_struct = _sub_pairs_to_struct(pseudofree_pairs)
     pseudoknot_struct = _sub_pairs_to_struct(pseudoknot_pairs, start_bracket=1)
