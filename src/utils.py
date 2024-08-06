@@ -82,6 +82,10 @@ def pairs_to_struct(pairs):
     return struct
 
 
+def optimize_pseudoknots(struct):
+    return struct_to_pairs(pairs_to_struct(struct))
+
+
 def _sub_pairs_to_struct(pairs, start_bracket=0):
     open_brackets = ["(", "[", "<", "{"] + [chr(65 + i) for i in range(26)]
     close_brackets = [")", "]", ">", "}"] + [chr(97 + i) for i in range(26)]
@@ -291,7 +295,7 @@ def run_preds(
     f_out = open(out_path, "w")
     if len(processed) == 0:
         header = (
-            "rna_name,seq,struct,break_rate,compression"
+            "rna_name,seq,struct,break_rate,compression,n_frags"
             if evaluate_cutting_model
             else "rna_name,seq,struct,pred,ttot,memory"
         )
@@ -312,6 +316,7 @@ def run_preds(
             continue
 
         print(f"{i}/{n}")
+        struct = optimize_pseudoknots(struct)
         if use_structs:
             kwargs["struct"] = struct
         if feed_structs_to_print_fscores:
@@ -339,16 +344,10 @@ def run_preds(
                 skip_counter += compute_frac - 1
         if evaluate_cutting_model:
             frags = [p[0] for p in pred]
+            n_frags = len(frags)
             struct_no_pseudoknots = re.sub("[^\(\)\.]", ".", struct)
             pairs = struct_to_pairs(struct_no_pseudoknots)
-            frag_attrib = np.zeros(
-                (
-                    len(
-                        seq,
-                    )
-                ),
-                dtype=int,
-            )
+            frag_attrib = np.zeros(len(seq), dtype=int)
             for i, f in enumerate(frags):
                 for start, end in f:
                     frag_attrib[start : end + 1] = i
@@ -364,28 +363,22 @@ def run_preds(
             compression = (
                 1 - ((pd.Series(frag_attrib).value_counts() / len(seq)) ** 2).sum()
             )
-            line = f'{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression}\n'
+            line = f'{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression},{n_frags}\n'
         else:
             line = f'{name.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
         with open(out_path, "a") as f_out:
             f_out.write(line)
 
 
-def get_scores(y, yhat, yhat_optional=None):
-    yhat_optional = "." * len(y) if yhat_optional is None else yhat_optional
-    assert len(y) == len(yhat) == len(yhat_optional)
-
+def get_scores(y, yhat):
     y_pairs = struct_to_pairs(y)
     yhat_pairs = struct_to_pairs(yhat)
-    yhat_optional_pairs = struct_to_pairs(yhat_optional)
 
     # MXfold2 format
     # https://github.com/mxfold/mxfold2/blob/51b213676708bebd664f0c40873a46e09353e1ee/mxfold2/compbpseq.py#L32
     L = len(y)
     ref = {(i + 1, j) for i, j in enumerate(y_pairs) if i + 1 < j}
     pred = {(i + 1, j) for i, j in enumerate(yhat_pairs) if i + 1 < j}
-    optional = {(i + 1, j) for i, j in enumerate(yhat_optional_pairs) if i + 1 < j}
-    pred = pred.union(optional.intersection(ref))
 
     tp = len(ref & pred)
     fp = len(pred - ref)
@@ -423,9 +416,7 @@ def get_scores_df(path_in):
     preds_rebuilt = []
     fscores = []
     sens_nopk = []
-    fscores_nopk = []
     sens_pk = []
-    fscores_pk = []
     print(f"Processing {path_in.name}...")
     for i, (y, yhat) in enumerate(zip(df_preds.struct, df_preds.pred)):
         if n >= 10 and i % int(n / 10) == 0:
@@ -444,15 +435,11 @@ def get_scores_df(path_in):
         _, this_fscore = get_scores(y, yhat)
         fscores.append(this_fscore)
 
-        this_sen_nopk, this_fscore_nopk = get_scores(
-            y_nopk, yhat_nopk, yhat_optional=yhat_pk
-        )
+        this_sen_nopk, _ = get_scores(y_nopk, yhat)
         sens_nopk.append(this_sen_nopk)
-        fscores_nopk.append(this_fscore_nopk)
 
-        this_sen_pk, this_fscore_pk = get_scores(y_pk, yhat_pk, yhat_optional=yhat_nopk)
+        this_sen_pk, _ = get_scores(y_pk, yhat)
         sens_pk.append(this_sen_pk)
-        fscores_pk.append(this_fscore_pk)
 
     # Create dataframe
     skipped = np.array(["?" in p for p in df_preds.pred])
@@ -464,8 +451,6 @@ def get_scores_df(path_in):
             "pred": preds_rebuilt,
             "length": df_preds.seq.apply(len),
             "fscore": fscores,
-            "fscore_nopk": fscores_nopk,
-            "fscore_pk": fscores_pk,
             "sen_nopk": sens_nopk,
             "sen_pk": sens_pk,
             "time": df_preds.ttot,
