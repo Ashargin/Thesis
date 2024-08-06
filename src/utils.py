@@ -62,7 +62,27 @@ def struct_to_pairs(struct):
     return pairs
 
 
-def pairs_to_struct(pairs, start_bracket=0):
+def pairs_to_struct(pairs):
+    pseudofree_pairs, pseudoknot_pairs = remove_pseudoknots(
+        pairs, return_pseudoknots=True
+    )
+    stacked = np.vstack([pseudofree_pairs, pseudoknot_pairs])
+    assert stacked.min(axis=0).max()
+
+    pseudofree_struct = _sub_pairs_to_struct(pseudofree_pairs)
+    pseudoknot_struct = _sub_pairs_to_struct(pseudoknot_pairs, start_bracket=1)
+
+    struct = "".join(
+        [
+            db1 if db2 == "." else db2
+            for db1, db2 in zip(pseudofree_struct, pseudoknot_struct)
+        ]
+    )
+
+    return struct
+
+
+def _sub_pairs_to_struct(pairs, start_bracket=0):
     open_brackets = ["(", "[", "<", "{"] + [chr(65 + i) for i in range(26)]
     close_brackets = [")", "]", ">", "}"] + [chr(97 + i) for i in range(26)]
     open_brackets = open_brackets[start_bracket:]
@@ -151,18 +171,21 @@ def remove_pseudoknots(struct_or_pairs, return_pseudoknots=False):
     pseudofree_pairs = cogent_to_numpy(cogent_pseudofree_pairs)
     pseudoknot_pairs = cogent_to_numpy(cogent_pseudoknot_pairs)
 
-    pseudofree_struct = pairs_to_struct(pseudofree_pairs)
-    pseudoknot_struct = pairs_to_struct(pseudoknot_pairs, start_bracket=1)
-    assert set(pseudofree_struct).issubset({".", "(", ")"})
-
-    if return_pseudoknots:
+    if seq_format == "pairs":
         return (
-            (pseudofree_struct, pseudoknot_struct)
-            if seq_format == "struct"
-            else (pseudofree_pairs, pseudoknot_pairs)
+            (pseudofree_pairs, pseudoknot_pairs)
+            if return_pseudoknots
+            else pseudofree_pairs
         )
-    else:
-        return pseudofree_struct if seq_format == "struct" else pseudofree_pairs
+
+    pseudofree_struct = _sub_pairs_to_struct(pseudofree_pairs)
+    pseudoknot_struct = _sub_pairs_to_struct(pseudoknot_pairs, start_bracket=1)
+
+    return (
+        (pseudofree_struct, pseudoknot_struct)
+        if return_pseudoknots
+        else pseudofree_struct
+    )
 
 
 def seq2kmer(seq, k):
@@ -362,7 +385,7 @@ def get_scores(y, yhat, yhat_optional=None):
     ref = {(i + 1, j) for i, j in enumerate(y_pairs) if i + 1 < j}
     pred = {(i + 1, j) for i, j in enumerate(yhat_pairs) if i + 1 < j}
     optional = {(i + 1, j) for i, j in enumerate(yhat_optional_pairs) if i + 1 < j}
-    ref = ref.union(optional.intersection(ref))
+    pred = pred.union(optional.intersection(ref))
 
     tp = len(ref & pred)
     fp = len(pred - ref)
