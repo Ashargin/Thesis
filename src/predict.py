@@ -303,6 +303,9 @@ def knotfold_predict(seq, path_knotfold="../KnotFold"):
     pairs = np.array(
         [int(line.split(" ")[-1]) for line in pred_txt.strip().split("\n")]
     )
+
+    # eliminate occasional conflicts from KnotFold output
+    pairs = np.array([j if pairs[j - 1] - 1 == i else 0 for i, j in enumerate(pairs)])
     pred = pairs_to_struct(pairs)
 
     os.remove(path_knotfold / path_out)
