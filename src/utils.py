@@ -83,7 +83,7 @@ def pairs_to_struct(pairs):
 
 
 def optimize_pseudoknots(struct):
-    return struct_to_pairs(pairs_to_struct(struct))
+    return pairs_to_struct(struct_to_pairs(struct))
 
 
 def _sub_pairs_to_struct(pairs, start_bracket=0):
