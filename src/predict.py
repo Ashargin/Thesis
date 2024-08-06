@@ -23,7 +23,7 @@ from src.utils import (
     eval_energy,
     get_scores,
     pairs_to_struct,
-    remove_pseudoknots,
+    optimize_pseudoknots,
 )
 from src.mxfold2_args import Mxfold2Args
 from src.models.loss import inv_exp_distance_to_cut_loss
