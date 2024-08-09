@@ -215,24 +215,24 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1):
     return preds, ttot, 0.0
 
 
-def probknot_predict(seq, path_probknot="../RNAstructure/exe/ProbKnot.exe"):
-    # path_probknot is the path to the ProbKnot.exe executable
+def probknot_predict(seq, path_rnastructure="../RNAstructure"):
+    # path_rnastructure is the path to the RNAstructure folder
     # ProbKnot is part of the RNAstructure package
     # https://rna.urmc.rochester.edu/RNAstructure.html
 
     tstart = time.time()
-    path_probknot = Path(path_probknot)
+    path_rnastructure = Path(path_rnastructure)
 
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_probknot_in_{suffix}.seq"
     path_middle = f"temp_probknot_middle_{suffix}.ct"
     path_out = f"temp_probknot_out_{suffix}.txt"
-    seq = re.sub("[^ATCG]", "N", seq)
+    seq = re.sub("[^AUCG]", "N", seq)
     with open(path_in, "w") as f:
         f.write(seq)
 
-    os.popen(f"{path_probknot} {path_in} {path_middle} --sequence").read()
-    os.popen(f"ct2dot {path_middle} -1 {path_out}").read()
+    os.popen(f"{path_rnastructure / 'exe' / 'ProbKnot'} {path_in} {path_middle} --sequence").read()
+    os.popen(f"{path_rnastructure / 'exe' / 'ct2dot'} {path_middle} -1 {path_out}").read()
     pred = open(path_out, "r").read().split("\n")[2]
 
     os.remove(path_in)
