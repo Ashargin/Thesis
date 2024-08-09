@@ -315,6 +315,33 @@ def knotfold_predict(seq, path_knotfold="../KnotFold"):
     return pred, ttot, memory
 
 
+def pkiss_predict(seq):
+    # https://bibiserv.cebitec.uni-bielefeld.de/pkiss
+
+    tstart = time.time()
+
+    # pKiss only accepts A, U, G, C nucleotides
+    pred = ["" if c in ["A", "U", "C", "G"] else "." for c in seq]
+    seq = re.sub("[^AUCG]", "", seq)
+
+    res = os.popen(
+        f"pKiss --mode=mfe --strategy=A {seq}"
+    ).read()
+    sub_pred = res.split('\n')[2].split(' ')[-1]
+
+    i = 0
+    for p in sub_pred:
+        while pred[i] == ".":
+            i += 1
+        pred[i] = p
+        i += 1
+    pred = "".join(pred)
+
+    ttot = time.time() - tstart
+
+    return pred, ttot, 0.0
+
+
 def oracle_get_cuts(struct):
     if len(struct) <= 3:
         return [], True
