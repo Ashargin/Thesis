@@ -1,5 +1,4 @@
 import os
-import sys
 import subprocess
 import random
 from pathlib import Path
@@ -8,15 +7,10 @@ import datetime
 import re
 import numpy as np
 from scipy import signal
-import pickle
 import itertools
 
 import torch
-from torch.utils.data import DataLoader
-from tensorflow import keras
-
-import mxfold2
-from mxfold2.predict import Predict
+import keras
 
 from src.utils import (
     format_data,
@@ -25,101 +19,49 @@ from src.utils import (
     pairs_to_struct,
     optimize_pseudoknots,
 )
-from src.mxfold2_args import Mxfold2Args
-from src.models.loss import inv_exp_distance_to_cut_loss
 
 # Settings
-DEFAULT_CUT_MODEL = Path("resources/models/CNN1D")
-DEFAULT_MXFOLD2_CONF = Path("resources/mxfold2_models/TR0-canonicals.conf")
+DEFAULT_CUT_MODEL = Path(__file__).parents[1] / "resources/models/CNN1D"
 
 # Load cut model
-default_cut_model = keras.models.load_model(
+default_cut_model = keras.layers.TFSMLayer(
     DEFAULT_CUT_MODEL,
-    compile=False,
-)
-default_cut_model.compile(
-    optimizer="adam",
-    loss=inv_exp_distance_to_cut_loss,
-    metrics=["accuracy"],
-    run_eagerly=True,
+    call_endpoint="serving_default",
 )
 
-# Build Mxfold2 predictor
-def build_mxfold2_predictor(conf):
-    # Get conf and build Mxfold2 predictor
-    mx_predictor = Predict()
-    args = Mxfold2Args(conf=conf)
 
-    # seed
-    if args.seed >= 0:
-        torch.manual_seed(args.seed)
-        random.seed(args.seed)
-
-    # model
-    mx_predictor.model, _ = mx_predictor.build_model(args)
-
-    # param and conf
-    if args.param != "":
-        param = Path(args.param)
-        if not param.exists() and conf is not None:
-            param = Path(conf).parent / param
-        p = torch.load(param, map_location="cpu")
-        if isinstance(p, dict) and "model_state_dict" in p:
-            p = p["model_state_dict"]
-        mx_predictor.model.load_state_dict(p)
-
-    # gpu
-    if args.gpu >= 0:
-        mx_predictor.model.to(torch.device("cuda", args.gpu))
-
-    return mx_predictor, args
-
-
-mxfold2_args = None
-mxfold2_predictor = None
-
-
-def mxfold2_predict(seq, conf=DEFAULT_MXFOLD2_CONF):
+# Prediction functions
+def mxfold2_predict(seq, path_mxfold2="../mxfold2", conf="TR0-canonicals.conf"):
+    # path_mxfold2 is the path to the mxfold2 repository
     # https://github.com/mxfold/mxfold2
 
-    # Load model if first time
-    global mxfold2_args
-    global mxfold2_predictor
-    if mxfold2_predictor is None:
-        mxfold2_predictor, mxfold2_args = build_mxfold2_predictor(conf)
-
     tstart = time.time()
+    path_mxfold2 = Path(path_mxfold2)
 
     # clear memory
-    if mxfold2_args.gpu >= 0:
-        torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
 
-    # predict
-    preds = []
-    mxfold2_predictor.test_loader = DataLoader(
-        [seq], batch_size=1, shuffle=False
-    )  # data loader
-    mxfold2_predictor.model.eval()
-    with torch.no_grad():
-        for seq_batch in mxfold2_predictor.test_loader:
-            _, preds_batch, _ = mxfold2_predictor.model(seq_batch)
-            preds += preds_batch
-    assert len(preds) == 1
-    pred = preds[0]
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
+    path_in = f"temp_mxfold2_in_{suffix}.fa"
+    with open(path_in, "w") as f:
+        f.write(f">0\n{seq}\n")
 
-    if mxfold2_args.gpu >= 0:
-        t = torch.cuda.get_device_properties(0).total_memory
-        r = torch.cuda.memory_reserved(0)
-        memory = r / t
-    else:
-        r = t = memory = -1
+    res = os.popen(
+        f"mxfold2 predict @{path_mxfold2 / 'models' / conf} {path_in}"
+    ).read()
+    pred = res.split("\n")[2].split(" ")[0]
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0)
+    memory = r / t
+
+    os.remove(path_in)
 
     ttot = time.time() - tstart
 
     return pred, ttot, memory
 
 
-def ufold_predict(seq, path_ufold):
+def ufold_predict(seq, path_ufold="../UFold"):
     # path_ufold is the path to the UFold repository
     # https://github.com/uci-cbcl/UFold
 
@@ -231,8 +173,12 @@ def probknot_predict(seq, path_rnastructure="../RNAstructure"):
     with open(path_in, "w") as f:
         f.write(seq)
 
-    os.popen(f"{path_rnastructure / 'exe' / 'ProbKnot'} {path_in} {path_middle} --sequence").read()
-    os.popen(f"{path_rnastructure / 'exe' / 'ct2dot'} {path_middle} -1 {path_out}").read()
+    os.popen(
+        f"{path_rnastructure / 'exe' / 'ProbKnot'} {path_in} {path_middle} --sequence"
+    ).read()
+    os.popen(
+        f"{path_rnastructure / 'exe' / 'ct2dot'} {path_middle} -1 {path_out}"
+    ).read()
     pred = open(path_out, "r").read().split("\n")[2]
 
     os.remove(path_in)
@@ -243,10 +189,10 @@ def probknot_predict(seq, path_rnastructure="../RNAstructure"):
     return pred, ttot, 0.0
 
 
-def ensemble_predict(seq, path_linearfold="../LinearFold"):
+def ensemble_predict(seq, path_mxfold2="../mxfold2", path_linearfold="../LinearFold"):
     tstart = time.time()
 
-    pred_mx, _, mem_mx = mxfold2_predict(seq)
+    pred_mx, _, mem_mx = mxfold2_predict(seq, path_mxfold2=path_mxfold2)
     pred_lf, _, mem_lf = linearfold_predict(seq, path_linearfold=path_linearfold)
     pred_rnaf, _, mem_rnaf = rnafold_predict(seq)
 
@@ -324,10 +270,8 @@ def pkiss_predict(seq):
     pred = ["" if c in ["A", "U", "C", "G"] else "." for c in seq]
     seq = re.sub("[^AUCG]", "", seq)
 
-    res = os.popen(
-        f"pKiss --mode=mfe --strategy=A {seq}"
-    ).read()
-    sub_pred = res.split('\n')[2].split(' ')[-1]
+    res = os.popen(f"pKiss --mode=mfe {seq}").read()
+    sub_pred = res.split("\n")[2].split(" ")[-1]
 
     i = 0
     for p in sub_pred:
@@ -352,10 +296,8 @@ def ipknot_predict(seq):
     with open(path_in, "w") as f:
         f.write(f">0\n{seq}\n")
 
-    res = os.popen(
-        f"ipknot {path_in}"
-    ).read()
-    pred = res.split('\n')[2]
+    res = os.popen(f"ipknot {path_in}").read()
+    pred = res.split("\n")[2]
 
     os.remove(path_in)
     ttot = time.time() - tstart
@@ -463,7 +405,9 @@ def dividefold_get_cuts(
 ):
     seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
-    cuts = cut_model(seq_mat).numpy().ravel()
+    cuts = cut_model(seq_mat)
+    assert len(cuts.values()) == 1
+    cuts = list(cuts.values())[0].numpy().ravel()
     min_height = min(min_height, max(cuts))
 
     def get_peaks(min_height):
