@@ -295,7 +295,7 @@ def run_preds(
     f_out = open(out_path, "w")
     if len(processed) == 0:
         header = (
-            "rna_name,seq,struct,break_rate,compression,n_frags"
+            "rna_name,seq,struct,break_rate,compression,frags,ttot"
             if evaluate_cutting_model
             else "rna_name,seq,struct,pred,ttot,memory"
         )
@@ -350,7 +350,6 @@ def run_preds(
                 skip_counter += compute_frac - 1
         if evaluate_cutting_model:
             frags = [p[0] for p in pred]
-            n_frags = len(frags)
             struct_no_pseudoknots = re.sub("[^\(\)\.]", ".", struct)
             pairs = struct_to_pairs(struct_no_pseudoknots)
             frag_attrib = np.zeros(len(seq), dtype=int)
@@ -369,7 +368,14 @@ def run_preds(
             compression = (
                 1 - ((pd.Series(frag_attrib).value_counts() / len(seq)) ** 2).sum()
             )
-            line = f'{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression},{n_frags}\n'
+            frags_txt = "["
+            for f in frags:
+                frags_txt += "["
+                for i, j in f:
+                    frags_txt += f"[{i} {j}]"
+                frags_txt += "]"
+            frags_txt += "]"
+            line = f'{name.split("#Name: ")[1]},{seq},{struct},{break_rate},{compression},{frags_txt},{ttot}\n'
         else:
             pred = optimize_pseudoknots(pred) if set(pred) != {"?"} else pred
             line = f'{name.split("#Name: ")[1]},{seq},{struct},{pred},{ttot},{memory}\n'
