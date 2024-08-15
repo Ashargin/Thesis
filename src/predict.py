@@ -6,8 +6,9 @@ import time
 import datetime
 import re
 import numpy as np
-from scipy import signal
+import scipy.signal
 import itertools
+import signal
 
 import torch
 import keras
@@ -29,13 +30,24 @@ default_cut_model = keras.layers.TFSMLayer(
     call_endpoint="serving_default",
 )
 
+# Timeout handler
+def timeout_handler(signum, frame):
+    raise TimeoutError("The program was terminated because it exceeded timeout.")
+
+
+signal.signal(signal.SIGALRM, timeout_handler)
+
 
 # Prediction functions
-def mxfold2_predict(seq, path_mxfold2="../mxfold2", conf="TR0-canonicals.conf"):
+def mxfold2_predict(
+    seq, path_mxfold2="../mxfold2", conf="TR0-canonicals.conf", timeout=None
+):
     # path_mxfold2 is the path to the mxfold2 repository
     # https://github.com/mxfold/mxfold2
 
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
     path_mxfold2 = Path(path_mxfold2)
 
     # clear memory
@@ -56,16 +68,20 @@ def mxfold2_predict(seq, path_mxfold2="../mxfold2", conf="TR0-canonicals.conf"):
 
     os.remove(path_in)
 
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, memory
 
 
-def ufold_predict(seq, path_ufold="../UFold"):
+def ufold_predict(seq, path_ufold="../UFold", timeout=None):
     # path_ufold is the path to the UFold repository
     # https://github.com/uci-cbcl/UFold
 
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
     path_ufold = Path(path_ufold)
 
     # clear memory
@@ -92,16 +108,20 @@ def ufold_predict(seq, path_ufold="../UFold"):
     os.remove(input_path)
     os.remove(output_path)
 
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, memory
 
 
-def linearfold_predict(seq, path_linearfold="../LinearFold"):
+def linearfold_predict(seq, path_linearfold="../LinearFold", timeout=None):
     # path_linearfold is the path to the LinearFold repository
     # https://github.com/LinearFold/LinearFold
 
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
     path_linearfold = Path(path_linearfold)
 
     # predict
@@ -114,26 +134,37 @@ def linearfold_predict(seq, path_linearfold="../LinearFold"):
         else "." * len(seq)
     )
 
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, 0.0
 
 
-def rnafold_predict(seq):
+def rnafold_predict(seq, timeout=None):
     # https://www.tbi.univie.ac.at/RNA/
 
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
+
     output = os.popen(f"echo {seq} | RNAfold").read()
     pred = output.split("\n")[1].split(" ")[0]
+
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, 0.0
 
 
-def rnasubopt_predict(seq, kmax=5, delta=0.1):
+def rnasubopt_predict(seq, kmax=5, delta=0.1, timeout=None):
     # https://www.tbi.univie.ac.at/RNA/
 
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
+
     output = os.popen(f"echo {seq} | RNAsubopt --sorted").read()
     lines = output.strip().split("\n")[1:]
     all_preds = [
@@ -152,17 +183,21 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1):
             if selected >= kmax:
                 break
 
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return preds, ttot, 0.0
 
 
-def probknot_predict(seq, path_rnastructure="../RNAstructure"):
+def probknot_predict(seq, path_rnastructure="../RNAstructure", timeout=None):
     # path_rnastructure is the path to the RNAstructure folder
     # ProbKnot is part of the RNAstructure package
     # https://rna.urmc.rochester.edu/RNAstructure.html
 
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
     path_rnastructure = Path(path_rnastructure)
 
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
@@ -184,13 +219,19 @@ def probknot_predict(seq, path_rnastructure="../RNAstructure"):
     os.remove(path_in)
     os.remove(path_middle)
     os.remove(path_out)
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, 0.0
 
 
-def ensemble_predict(seq, path_mxfold2="../mxfold2", path_linearfold="../LinearFold"):
+def ensemble_predict(
+    seq, path_mxfold2="../mxfold2", path_linearfold="../LinearFold", timeout=None
+):
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
 
     pred_mx, _, mem_mx = mxfold2_predict(seq, path_mxfold2=path_mxfold2)
     pred_lf, _, mem_lf = linearfold_predict(seq, path_linearfold=path_linearfold)
@@ -204,12 +245,15 @@ def ensemble_predict(seq, path_mxfold2="../mxfold2", path_linearfold="../LinearF
     preds.sort(key=lambda x: x[1])
 
     memory = max([mem_mx, mem_lf, mem_rnaf])
+
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return preds, ttot, memory
 
 
-def knotfold_predict(seq, path_knotfold="../KnotFold"):
+def knotfold_predict(seq, path_knotfold="../KnotFold", timeout=None):
     # path_knotfold is the path to the KnotFold repository
     # https://github.com/gongtiansu/KnotFold
 
@@ -217,6 +261,8 @@ def knotfold_predict(seq, path_knotfold="../KnotFold"):
         return ".", 0.0, 0.0
 
     tstart = time.time()
+    if timeout is not None:
+        signal.alarm(timeout)
     path_knotfold = Path(path_knotfold)
 
     # clear memory
@@ -256,15 +302,21 @@ def knotfold_predict(seq, path_knotfold="../KnotFold"):
 
     os.remove(path_knotfold / path_out)
 
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, memory
 
 
-def pkiss_predict(seq):
+def pkiss_predict(seq, timeout="meta"):
     # https://bibiserv.cebitec.uni-bielefeld.de/pkiss
 
     tstart = time.time()
+    if timeout is not None:
+        if timeout == "meta":
+            timeout = 50 + (len(seq) > 1000) * 150 + (len(seq) > 2000) * 400
+        signal.alarm(timeout)
 
     # pKiss only accepts A, U, G, C nucleotides
     pred = ["" if c in ["A", "U", "C", "G"] else "." for c in seq]
@@ -281,15 +333,21 @@ def pkiss_predict(seq):
         i += 1
     pred = "".join(pred)
 
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, 0.0
 
 
-def ipknot_predict(seq):
+def ipknot_predict(seq, timeout="meta"):
     # https://github.com/satoken/ipknot
 
     tstart = time.time()
+    if timeout is not None:
+        if timeout == "meta":
+            timeout = 50 + (len(seq) > 1000) * 150 + (len(seq) > 2000) * 400
+        signal.alarm(timeout)
 
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_ipknot_in_{suffix}.fa"
@@ -300,6 +358,9 @@ def ipknot_predict(seq):
     pred = res.split("\n")[2]
 
     os.remove(path_in)
+
+    if timeout is not None:
+        signal.alarm(0)
     ttot = time.time() - tstart
 
     return pred, ttot, 0.0
@@ -411,7 +472,9 @@ def dividefold_get_cuts(
     min_height = min(min_height, max(cuts))
 
     def get_peaks(min_height):
-        peaks = signal.find_peaks(cuts, height=min_height, distance=min_distance)[0]
+        peaks = scipy.signal.find_peaks(cuts, height=min_height, distance=min_distance)[
+            0
+        ]
         if peaks.size > 0 and (peaks[0] == 0):
             peaks = peaks[1:]
         if peaks.size > 0 and (peaks[-1] == len(seq)):
@@ -642,7 +705,7 @@ def dividefold_predict(
             max_length = 1000
 
     if max_steps is not None and max_steps < min_steps:
-        raise Warning("max_steps must be greater than min_steps.")
+        raise ValueError("max_steps must be greater than min_steps.")
 
     if struct:
         struct = optimize_pseudoknots(struct)
