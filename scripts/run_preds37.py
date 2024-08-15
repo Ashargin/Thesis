@@ -84,7 +84,13 @@ for dataset in ["test_familywise", "test_sequencewise"]:
         ),
         in_filename=dataset,
         allow_errors=global_predict_fnc.__name__
-        in ["mxfold2_predict", "knotfold_predict"],
+        in [
+            "mxfold2_predict",
+            "knotfold_predict",
+            "ipknot_predict",
+            "pkiss_predict",
+            "probknot_predict",
+        ],
         use_structs=model_filename == "oracle",
         kwargs=kwargs,
         evaluate_cutting_model=evaluate_cutting_model,
