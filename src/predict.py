@@ -479,9 +479,7 @@ def dividefold_get_cuts(
 ):
     seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
-    cuts = cut_model(seq_mat)
-    assert len(cuts.values()) == 1
-    cuts = list(cuts.values())[0].numpy().ravel()
+    cuts = cut_model(seq_mat).numpy().ravel()
     min_height = min(min_height, max(cuts))
 
     def get_peaks(min_height):
@@ -712,7 +710,7 @@ def dividefold_predict(
     tstart = time.time()
 
     if max_length is None:
-        if predict_fnc.__name__ != "knotfold_predict":
+        if (predict_fnc is not None) and (predict_fnc.__name__ != "knotfold_predict"):
             max_length = 2000 if len(seq) > 2500 else 400
         else:
             max_length = 1000
