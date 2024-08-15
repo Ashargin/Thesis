@@ -1,21 +1,19 @@
 #!/bin/bash
-#SBATCH --job-name=runProb           # nom du job
+#SBATCH --job-name=run36             # nom du job
 #SBATCH --nodes=1                    # on demande un noeud
 #SBATCH --ntasks-per-node=1          # avec une tache par noeud (= nombre de GPU ici)
 #SBATCH --gres=gpu:1                 # nombre de GPU par noeud (max 8 avec gpu_p2, gpu_p4, gpu_p5)
 #SBATCH --cpus-per-task=10           # nombre de CPU par tache (1/4 des CPU du noeud 4-GPU)
 #SBATCH --hint=nomultithread         # hyperthreading desactive
 #SBATCH --time=20:00:00              # temps maximum d'execution demande (HH:MM:SS)
-#SBATCH --output=runProb_%j.out      # nom du fichier de sortie
-#SBATCH --error=runProb_%j.out       # nom du fichier d'erreur (ici commun avec la sortie)
+#SBATCH --output=run36_%j.out      # nom du fichier de sortie
+#SBATCH --error=run36_%j.out       # nom du fichier d'erreur (ici commun avec la sortie)
 
 # Nettoyage des modules charges en interactif et herites par defaut
 module purge
 
 # Chargement des modules
 module load pytorch-gpu/py3/1.6.0
+module load pkiss
 
-export PATH=$PATH:$WORK/RNAstructure/exe
-export DATAPATH=$WORK/RNAstructure/data_tables
-
-python -u scripts/run_predsProb.py
+python -u scripts/run_preds36.py

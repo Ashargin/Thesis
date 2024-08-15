@@ -12,17 +12,14 @@ from src.predict import (
     rnafold_predict,
     linearfold_predict,
     knotfold_predict,
-    ipknot_predict,
-    pkiss_predict,
-    probknot_predict,
 )
 from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
 # Settings
-global_predict_fnc = pkiss_predict
-model_filename = None
-predict_fnc = None
+global_predict_fnc = dividefold_predict
+model_filename = "BiLSTM"
+predict_fnc = linearfold_predict
 evaluate_cutting_model = False
 max_length = None
 
@@ -61,13 +58,7 @@ predict_name = ""
 if global_predict_fnc.__name__ == "dividefold_predict" and not evaluate_cutting_model:
     predict_name = "_" + predict_fnc.__name__.replace("_predict", "").replace(
         "mxfold2", "mx"
-    ).replace("linearfold", "lf").replace("rnafold", "rnaf").replace(
-        "knotfold", "kf"
-    ).replace(
-        "ipknot", "ipk"
-    ).replace(
-        "probknot", "pbk"
-    )
+    ).replace("linearfold", "lf").replace("rnafold", "rnaf").replace("knotfold", "kf")
 kwargs = (
     {"cut_model": model, "predict_fnc": predict_fnc, "max_length": max_length}
     if global_predict_fnc.__name__ == "dividefold_predict"
@@ -75,7 +66,9 @@ kwargs = (
 )
 
 # Run cutting metrics
-for dataset in ["16S23S", "curated_lncRNAs", "test_familywise", "test_sequencewise"]:
+for dataset in [
+    "16S23S"
+]:  # , "curated_lncRNAs", "test_familywise", "test_sequencewise"]:
     dataset_name = dataset.replace("test_", "").replace("_lncRNAs", "")
     run_preds(
         global_predict_fnc,
