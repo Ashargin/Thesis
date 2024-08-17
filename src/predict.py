@@ -367,7 +367,11 @@ def ipknot_predict(seq, timeout="meta"):
     with open(path_in, "w") as f:
         f.write(f">0\n{seq}\n")
 
-    res = os.popen(f"ipknot {path_in}").read()
+    try:
+        res = os.popen(f"ipknot {path_in}").read()
+    except TimeoutError:
+        os.remove(path_in)
+        timeout_handler(None, None)
     pred = res.split("\n")[2]
 
     os.remove(path_in)
