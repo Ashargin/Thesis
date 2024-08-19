@@ -405,17 +405,17 @@ def get_scores(y, yhat):
         if (this_ppv + this_sen) > 0
         else 0.0
     )
-    # this_mcc = (
-    #     (tp * tn - fp * fn)
-    #     / np.sqrt(tp + fp)
-    #     / np.sqrt(tp + fn)
-    #     / np.sqrt(tn + fp)
-    #     / np.sqrt(tn + fn)
-    #     if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
-    #     else 0.0
-    # )
+    this_mcc = (
+        (tp * tn - fp * fn)
+        / np.sqrt(tp + fp)
+        / np.sqrt(tp + fn)
+        / np.sqrt(tn + fp)
+        / np.sqrt(tn + fn)
+        if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
+        else 0.0
+    )
 
-    return this_sen, this_fscore
+    return this_ppv, this_sen, this_fscore, this_mcc
 
 
 def get_scores_df(path_in):
@@ -425,7 +425,10 @@ def get_scores_df(path_in):
     n = df_preds.shape[0]
 
     # Compute scores
+    ppvs = []
+    sens = []
     fscores = []
+    mccs = []
     sens_nopk = []
     sens_pk = []
     print(f"Processing {path_in.name}...")
@@ -436,13 +439,16 @@ def get_scores_df(path_in):
         y_nopk = re.sub("[^\(\)\.]", ".", y)
         y_pk = re.sub("[\(\)]", ".", y)
 
-        _, this_fscore = get_scores(y, yhat)
+        this_ppv, this_sen, this_fscore, this_mcc = get_scores(y, yhat)
+        ppvs.append(this_ppv)
+        sens.append(this_sen)
         fscores.append(this_fscore)
+        mccs.append(this_mcc)
 
-        this_sen_nopk, _ = get_scores(y_nopk, yhat)
+        _, this_sen_nopk, _, _ = get_scores(y_nopk, yhat)
         sens_nopk.append(this_sen_nopk)
 
-        this_sen_pk, _ = get_scores(y_pk, yhat)
+        _, this_sen_pk, _, _ = get_scores(y_pk, yhat)
         sens_pk.append(this_sen_pk)
 
     # Create dataframe
@@ -454,7 +460,10 @@ def get_scores_df(path_in):
             "struct": df_preds.struct,
             "pred": df_preds.pred,
             "length": df_preds.seq.apply(len),
+            "ppv": ppvs,
+            "sen": sens,
             "fscore": fscores,
+            "mcc": mccs,
             "sen_nopk": sens_nopk,
             "sen_pk": sens_pk,
             "time": df_preds.ttot,
@@ -467,8 +476,6 @@ def get_scores_df(path_in):
         .replace("_rnaf_", "_")
         .replace("_lf_", "_")
         .replace("_kf_", "_")
-        .replace("_sub_", "_")
-        .replace("_ens_", "_")
         .replace(".csv", "_cuttingmetrics.csv")
     )
     cutting_metric_path = (
@@ -482,9 +489,8 @@ def get_scores_df(path_in):
         assert np.all(data.rna_name == df_cutting_metrics.rna_name)
         data["cut_break_rate"] = df_cutting_metrics.break_rate
         data["cut_compression"] = df_cutting_metrics.compression
+        data["cut_time"] = df_cutting_metrics.ttot
 
-    data.time = data.time.astype(float)
-    data.memory = data.memory.astype(float)
     data = data.iloc[~skipped, :]
 
     print("Done.")
