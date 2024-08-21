@@ -399,7 +399,7 @@ def _confusion_matrix_to_scores(tp, fp, fn, tn):
     return ppv, sen, fscore, mcc
 
 
-def _get_structure_scores(y, yhat):
+def get_structure_scores(y, yhat):
     y_pairs = struct_to_pairs(y)
     yhat_pairs = struct_to_pairs(yhat)
 
@@ -417,7 +417,7 @@ def _get_structure_scores(y, yhat):
     return _confusion_matrix_to_scores(tp, fp, fn, tn)
 
 
-def _get_pseudoknot_scores(y, yhat):
+def get_pseudoknot_scores(y, yhat):
     y_pairs = struct_to_pairs(y)
     yhat_pairs = struct_to_pairs(yhat)
     y_cogent_pairs = [(i + 1, j) for i, j in enumerate(y_pairs) if j > i + 1]
@@ -437,7 +437,7 @@ def _get_pseudoknot_scores(y, yhat):
     ref = fast_pk_search(y_cogent_pairs)
     pred = fast_pk_search(yhat_cogent_pairs)
 
-    # Similarly as in _get_structure_scores
+    # Similarly as in get_structure_scores
     # The number of possible pseudoknots is L * (L - 1) * (L - 2) * (L - 3) / 24
     tp = len(ref & pred)
     fp = len(pred - ref)
@@ -467,13 +467,13 @@ def get_scores_df(path_in):
         if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
 
-        this_ppv, this_sen, this_fscore, this_mcc = _get_structure_scores(y, yhat)
+        this_ppv, this_sen, this_fscore, this_mcc = get_structure_scores(y, yhat)
         ppvs.append(this_ppv)
         sens.append(this_sen)
         fscores.append(this_fscore)
         mccs.append(this_mcc)
 
-        this_pk_ppv, this_pk_sen, this_pk_fscore, this_pk_mcc = _get_pseudoknot_scores(
+        this_pk_ppv, this_pk_sen, this_pk_fscore, this_pk_mcc = get_pseudoknot_scores(
             y, yhat
         )
         pk_ppvs.append(this_pk_ppv)

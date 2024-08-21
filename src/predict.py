@@ -18,7 +18,7 @@ from tensorflow import keras
 from src.utils import (
     format_data,
     eval_energy,
-    get_scores,
+    get_structure_scores,
     pairs_to_struct,
     optimize_pseudoknots,
 )
@@ -823,7 +823,7 @@ def dividefold_predict(
 
         if struct_to_print_fscores:
             for p, e in zip(all_global_preds, global_energies):
-                _, _, fscore, _ = get_scores(struct_to_print_fscores, p)
+                _, _, fscore, _ = get_structure_scores(struct_to_print_fscores, p)
                 print((fscore, e))
 
     else:  # single prediction function
