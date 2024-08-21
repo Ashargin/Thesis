@@ -458,15 +458,14 @@ def get_scores_df(path_in):
     sens = []
     fscores = []
     mccs = []
-    sens_nopk = []
-    sens_pk = []
+    pk_ppvs = []
+    pk_sens = []
+    pk_fscores = []
+    pk_mccs = []
     print(f"Processing {path_in.name}...")
     for i, (y, yhat) in enumerate(zip(df_preds.struct, df_preds.pred)):
         if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
-
-        y_nopk = re.sub("[^\(\)\.]", ".", y)
-        y_pk = re.sub("[\(\)]", ".", y)
 
         this_ppv, this_sen, this_fscore, this_mcc = _get_structure_scores(y, yhat)
         ppvs.append(this_ppv)
@@ -474,11 +473,13 @@ def get_scores_df(path_in):
         fscores.append(this_fscore)
         mccs.append(this_mcc)
 
-        _, this_sen_nopk, _, _ = _get_structure_scores(y_nopk, yhat)
-        sens_nopk.append(this_sen_nopk)
-
-        _, this_sen_pk, _, _ = _get_structure_scores(y_pk, yhat)
-        sens_pk.append(this_sen_pk)
+        this_pk_ppv, this_pk_sen, this_pk_fscore, this_pk_mcc = _get_pseudoknot_scores(
+            y, yhat
+        )
+        pk_ppvs.append(this_pk_ppv)
+        pk_sens.append(this_pk_sen)
+        pk_fscores.append(this_pk_fscore)
+        pk_mccs.append(this_pk_mcc)
 
     # Create dataframe
     skipped = np.array(["?" in p for p in df_preds.pred])
@@ -493,8 +494,10 @@ def get_scores_df(path_in):
             "sen": sens,
             "fscore": fscores,
             "mcc": mccs,
-            "sen_nopk": sens_nopk,
-            "sen_pk": sens_pk,
+            "pk_ppv": pk_ppvs,
+            "pk_sen": pk_sens,
+            "pk_fscore": pk_fscores,
+            "pk_mcc": pk_mccs,
             "time": df_preds.ttot,
             "memory": df_preds.memory,
         }
