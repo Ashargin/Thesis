@@ -383,11 +383,27 @@ def run_preds(
             f_out.write(line)
 
 
-def get_scores(y, yhat):
+def _confusion_matrix_to_scores(tp, fp, fn, tn):
+    ppv = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    sen = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    fscore = 2 * sen * ppv / (sen + ppv) if (ppv + sen) > 0 else 0.0
+    mcc = (
+        (tp * tn - fp * fn)
+        / np.sqrt(tp + fp)
+        / np.sqrt(tp + fn)
+        / np.sqrt(tn + fp)
+        / np.sqrt(tn + fn)
+        if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
+        else 0.0
+    )
+    return ppv, sen, fscore, mcc
+
+
+def _get_structure_scores(y, yhat):
     y_pairs = struct_to_pairs(y)
     yhat_pairs = struct_to_pairs(yhat)
 
-    # MXfold2 format
+    # MXfold2 definition of true/false positives/negatives
     # https://github.com/mxfold/mxfold2/blob/51b213676708bebd664f0c40873a46e09353e1ee/mxfold2/compbpseq.py#L32
     L = len(y)
     ref = {(i + 1, j) for i, j in enumerate(y_pairs) if i + 1 < j}
@@ -398,24 +414,37 @@ def get_scores(y, yhat):
     fn = len(ref - pred)
     tn = L * (L - 1) // 2 - tp - fp - fn
 
-    this_ppv = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    this_sen = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    this_fscore = (
-        2 * this_sen * this_ppv / (this_sen + this_ppv)
-        if (this_ppv + this_sen) > 0
-        else 0.0
-    )
-    this_mcc = (
-        (tp * tn - fp * fn)
-        / np.sqrt(tp + fp)
-        / np.sqrt(tp + fn)
-        / np.sqrt(tn + fp)
-        / np.sqrt(tn + fn)
-        if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
-        else 0.0
-    )
+    return _confusion_matrix_to_scores(tp, fp, fn, tn)
 
-    return this_ppv, this_sen, this_fscore, this_mcc
+
+def _get_pseudoknot_scores(y, yhat):
+    y_pairs = struct_to_pairs(y)
+    yhat_pairs = struct_to_pairs(yhat)
+    y_cogent_pairs = [(i + 1, j) for i, j in enumerate(y_pairs) if j > i + 1]
+    yhat_cogent_pairs = [(i + 1, j) for i, j in enumerate(yhat_pairs) if j > i + 1]
+
+    def fast_pk_search(cogent_pairs):
+        pks = set()
+        for idx, (i, j) in enumerate(cogent_pairs):
+            for (k, l) in cogent_pairs[idx + 1 :]:
+                if k > j:
+                    break
+                if l > j:  # such that i < k < j < l by construction, ie a pseudoknot
+                    pks.add(((i, j), (k, l)))
+        return pks
+
+    L = len(y)
+    ref = fast_pk_search(y_cogent_pairs)
+    pred = fast_pk_search(yhat_cogent_pairs)
+
+    # Similarly as in _get_structure_scores
+    # The number of possible pseudoknots is L * (L - 1) * (L - 2) * (L - 3) / 24
+    tp = len(ref & pred)
+    fp = len(pred - ref)
+    fn = len(ref - pred)
+    tn = L * (L - 1) * (L - 2) * (L - 3) // 24 - tp - fp - fn
+
+    return _confusion_matrix_to_scores(tp, fp, fn, tn)
 
 
 def get_scores_df(path_in):
@@ -439,16 +468,16 @@ def get_scores_df(path_in):
         y_nopk = re.sub("[^\(\)\.]", ".", y)
         y_pk = re.sub("[\(\)]", ".", y)
 
-        this_ppv, this_sen, this_fscore, this_mcc = get_scores(y, yhat)
+        this_ppv, this_sen, this_fscore, this_mcc = _get_structure_scores(y, yhat)
         ppvs.append(this_ppv)
         sens.append(this_sen)
         fscores.append(this_fscore)
         mccs.append(this_mcc)
 
-        _, this_sen_nopk, _, _ = get_scores(y_nopk, yhat)
+        _, this_sen_nopk, _, _ = _get_structure_scores(y_nopk, yhat)
         sens_nopk.append(this_sen_nopk)
 
-        _, this_sen_pk, _, _ = get_scores(y_pk, yhat)
+        _, this_sen_pk, _, _ = _get_structure_scores(y_pk, yhat)
         sens_pk.append(this_sen_pk)
 
     # Create dataframe
