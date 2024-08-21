@@ -203,13 +203,15 @@ def rnasubopt_predict(seq, kmax=5, delta=0.1, timeout=None):
     return preds, ttot, 0.0
 
 
-def probknot_predict(seq, path_rnastructure="../RNAstructure", timeout=None):
+def probknot_predict(seq, path_rnastructure="../RNAstructure", timeout="meta"):
     # path_rnastructure is the path to the RNAstructure folder
     # ProbKnot is part of the RNAstructure package
     # https://rna.urmc.rochester.edu/RNAstructure.html
 
     tstart = time.time()
     if timeout is not None:
+        if timeout == "meta":
+            timeout = 50 + (len(seq) > 1000) * 150 + (len(seq) > 2000) * 400
         signal.alarm(timeout)
     path_rnastructure = Path(path_rnastructure)
 
@@ -221,12 +223,21 @@ def probknot_predict(seq, path_rnastructure="../RNAstructure", timeout=None):
     with open(path_in, "w") as f:
         f.write(seq)
 
-    os.popen(
-        f"{path_rnastructure / 'exe' / 'ProbKnot'} {path_in} {path_middle} --sequence"
-    ).read()
-    os.popen(
-        f"{path_rnastructure / 'exe' / 'ct2dot'} {path_middle} -1 {path_out}"
-    ).read()
+    try:
+        os.popen(
+            f"{path_rnastructure / 'exe' / 'ProbKnot'} {path_in} {path_middle} --sequence"
+        ).read()
+    except TimeoutError:
+        os.remove(path_in)
+        timeout_handler(None, None)
+    try:
+        os.popen(
+            f"{path_rnastructure / 'exe' / 'ct2dot'} {path_middle} -1 {path_out}"
+        ).read()
+    except TimeoutError:
+        os.remove(path_in)
+        os.remove(path_middle)
+        timeout_handler(None, None)
     pred = open(path_out, "r").read().split("\n")[2]
 
     os.remove(path_in)
