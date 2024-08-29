@@ -388,13 +388,17 @@ def _confusion_matrix_to_scores(tp, fp, fn, tn):
     sen = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     fscore = 2 * sen * ppv / (sen + ppv) if (ppv + sen) > 0 else 0.0
     mcc = (
-        (tp * tn - fp * fn)
-        / np.sqrt(tp + fp)
-        / np.sqrt(tp + fn)
-        / np.sqrt(tn + fp)
-        / np.sqrt(tn + fn)
-        if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
-        else 0.0
+        (
+            (tp * tn - fp * fn)
+            / np.sqrt(tp + fp)
+            / np.sqrt(tp + fn)
+            / np.sqrt(tn + fp)
+            / np.sqrt(tn + fn)
+            if (tp + fp) > 0 and (tp + fn) > 0 and (tn + fp) > 0 and (tn + fn) > 0
+            else 0.0
+        )
+        if tn is not None
+        else None
     )
     return ppv, sen, fscore, mcc
 
@@ -417,13 +421,13 @@ def get_structure_scores(y, yhat):
     return _confusion_matrix_to_scores(tp, fp, fn, tn)
 
 
-def get_pseudoknot_scores(y, yhat):
+def get_pseudoknot_interaction_scores(y, yhat):
     y_pairs = struct_to_pairs(y)
     yhat_pairs = struct_to_pairs(yhat)
     y_cogent_pairs = [(i + 1, j) for i, j in enumerate(y_pairs) if j > i + 1]
     yhat_cogent_pairs = [(i + 1, j) for i, j in enumerate(yhat_pairs) if j > i + 1]
 
-    def fast_pk_search(cogent_pairs):
+    def fast_pk_interaction_search(cogent_pairs):
         pks = set()
         for idx, (i, j) in enumerate(cogent_pairs):
             for (k, l) in cogent_pairs[idx + 1 :]:
@@ -434,8 +438,8 @@ def get_pseudoknot_scores(y, yhat):
         return pks
 
     L = len(y)
-    ref = fast_pk_search(y_cogent_pairs)
-    pred = fast_pk_search(yhat_cogent_pairs)
+    ref = fast_pk_interaction_search(y_cogent_pairs)
+    pred = fast_pk_interaction_search(yhat_cogent_pairs)
 
     # Similarly as in get_structure_scores
     # The number of possible pseudoknots is L * (L - 1) * (L - 2) * (L - 3) / 24
@@ -444,6 +448,60 @@ def get_pseudoknot_scores(y, yhat):
     fn = len(ref - pred)
     tn = L * (L - 1) * (L - 2) * (L - 3) // 24 - tp - fp - fn
 
+    return _confusion_matrix_to_scores(tp, fp, fn, tn)
+
+
+def get_pseudoknot_motif_scores(y, yhat, return_confusion_matrix=False, min_pairs=1):
+    y_pairs = struct_to_pairs(y)
+    yhat_pairs = struct_to_pairs(yhat)
+    y_cogent_pairs = [(i + 1, j) for i, j in enumerate(y_pairs) if j > i + 1]
+    yhat_cogent_pairs = [(i + 1, j) for i, j in enumerate(yhat_pairs) if j > i + 1]
+
+    def fast_pk_motif_search(cogent_pairs):
+        left_links = {}
+        for idx, (i, j) in enumerate(cogent_pairs):
+            for (k, l) in cogent_pairs[idx + 1 :]:
+                if k > j:
+                    break
+                if l > j:  # such that i < k < j < l by construction, ie a pseudoknot
+                    if (i, j) in left_links:
+                        left_links[(i, j)].append((k, l))
+                    else:
+                        left_links[(i, j)] = [(k, l)]
+        pks = []
+        for left_p, this_right_bound in left_links.items():
+            for left_bound, right_bound in pks:
+                if right_bound == this_right_bound:
+                    left_bound.append(left_p)
+                    break
+            else:
+                pks.append(([left_p], this_right_bound))
+
+        return pks
+
+    ref = fast_pk_motif_search(y_cogent_pairs)
+    pred = fast_pk_motif_search(yhat_cogent_pairs)
+
+    # Compute tp / fp / fn
+    positives = [False for _ in range(len(ref))]
+    fp = 0
+    for pred_leftb, pred_rightb in pred:
+        is_true = False
+        for i, (ref_leftb, ref_rightb) in enumerate(ref):
+            left_found = len(set(pred_leftb) & (set(ref_leftb)))
+            if left_found >= min_pairs:
+                right_found = len(set(pred_rightb) & (set(ref_rightb)))
+                if right_found >= min_pairs:
+                    positives[i] = True
+                    is_true = True
+        if not is_true:
+            fp += 1
+    tp = sum(positives)
+    fn = len(ref) - tp
+    tn = None
+
+    if return_confusion_matrix:
+        return _confusion_matrix_to_scores(tp, fp, fn, tn), (tp, fp, fn, tn)
     return _confusion_matrix_to_scores(tp, fp, fn, tn)
 
 
@@ -458,28 +516,42 @@ def get_scores_df(path_in):
     sens = []
     fscores = []
     mccs = []
-    pk_ppvs = []
-    pk_sens = []
-    pk_fscores = []
-    pk_mccs = []
+    pk_motif_ppvs = []
+    pk_motif_sens = []
+    pk_motif_fscores = []
+    pk_motif_tps = []
+    pk_motif_fps = []
+    pk_motif_fns = []
+    pk_interact_ppvs = []
+    pk_interact_sens = []
+    pk_interact_fscores = []
+    pk_interact_mccs = []
     print(f"Processing {path_in.name}...")
     for i, (y, yhat) in enumerate(zip(df_preds.struct, df_preds.pred)):
         if n >= 10 and i % int(n / 10) == 0:
             print(f"{10 * int(i / int(n / 10))}%")
 
-        this_ppv, this_sen, this_fscore, this_mcc = get_structure_scores(y, yhat)
-        ppvs.append(this_ppv)
-        sens.append(this_sen)
-        fscores.append(this_fscore)
-        mccs.append(this_mcc)
+        ppv, sen, fscore, mcc = get_structure_scores(y, yhat)
+        ppvs.append(ppv)
+        sens.append(sen)
+        fscores.append(fscore)
+        mccs.append(mcc)
 
-        this_pk_ppv, this_pk_sen, this_pk_fscore, this_pk_mcc = get_pseudoknot_scores(
-            y, yhat
+        (ppv, sen, fscore, _), (tp, fp, fn, _) = get_pseudoknot_motif_scores(
+            y, yhat, return_confusion_matrix=True
         )
-        pk_ppvs.append(this_pk_ppv)
-        pk_sens.append(this_pk_sen)
-        pk_fscores.append(this_pk_fscore)
-        pk_mccs.append(this_pk_mcc)
+        pk_motif_ppvs.append(ppv)
+        pk_motif_sens.append(sen)
+        pk_motif_fscores.append(fscore)
+        pk_motif_tps.append(tp)
+        pk_motif_fps.append(fp)
+        pk_motif_fns.append(fn)
+
+        ppv, sen, fscore, mcc = get_pseudoknot_interaction_scores(y, yhat)
+        pk_interact_ppvs.append(ppv)
+        pk_interact_sens.append(sen)
+        pk_interact_fscores.append(fscore)
+        pk_interact_mccs.append(mcc)
 
     # Create dataframe
     skipped = np.array(["?" in p for p in df_preds.pred])
@@ -494,10 +566,16 @@ def get_scores_df(path_in):
             "sen": sens,
             "fscore": fscores,
             "mcc": mccs,
-            "pk_ppv": pk_ppvs,
-            "pk_sen": pk_sens,
-            "pk_fscore": pk_fscores,
-            "pk_mcc": pk_mccs,
+            "pk_motif_ppv": pk_motif_ppvs,
+            "pk_motif_sen": pk_motif_sens,
+            "pk_motif_fscore": pk_motif_fscores,
+            "pk_motif_tp": pk_motif_tps,
+            "pk_motif_fn": pk_motif_fns,
+            "pk_motif_fp": pk_motif_fps,
+            "pk_interact_ppv": pk_interact_ppvs,
+            "pk_interact_sen": pk_interact_sens,
+            "pk_interact_fscore": pk_interact_fscores,
+            "pk_interact_mcc": pk_interact_mccs,
             "time": df_preds.ttot,
             "memory": df_preds.memory,
         }
