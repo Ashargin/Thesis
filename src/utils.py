@@ -451,7 +451,9 @@ def get_pseudoknot_interaction_scores(y, yhat):
     return _confusion_matrix_to_scores(tp, fp, fn, tn)
 
 
-def get_pseudoknot_motif_scores(y, yhat, return_confusion_matrix=False, min_pairs=1):
+def get_pseudoknot_motif_scores(
+    y, yhat, return_confusion_matrix=False, min_pairs=1, min_distance_in_pk=6
+):
     y_pairs = struct_to_pairs(y)
     yhat_pairs = struct_to_pairs(yhat)
     y_cogent_pairs = [(i + 1, j) for i, j in enumerate(y_pairs) if j > i + 1]
@@ -481,6 +483,30 @@ def get_pseudoknot_motif_scores(y, yhat, return_confusion_matrix=False, min_pair
 
     ref = fast_pk_motif_search(y_cogent_pairs)
     pred = fast_pk_motif_search(yhat_cogent_pairs)
+
+    def get_distance_in_pseudoknot(leftb, rightb):
+        leftb = list(sorted(leftb, key=lambda x: x[0]))
+        rightb = list(sorted(rightb, key=lambda x: x[0]))
+        # left_distance = rightb[-1][0] - leftb[0][0] - len(leftb) - len(rightb) + 1
+        left_distance = rightb[-1][0] - leftb[0][0] - 1
+
+        leftb = list(sorted(leftb, key=lambda x: x[1]))
+        rightb = list(sorted(rightb, key=lambda x: x[1]))
+        # right_distance = rightb[-1][1] - leftb[0][1] - len(leftb) - len(rightb) + 1
+        right_distance = rightb[-1][1] - leftb[0][1] - 1
+
+        return left_distance + right_distance
+
+    ref = [
+        (leftb, rightb)
+        for leftb, rightb in ref
+        if get_distance_in_pseudoknot(leftb, rightb) >= min_distance_in_pk
+    ]
+    pred = [
+        (leftb, rightb)
+        for leftb, rightb in pred
+        if get_distance_in_pseudoknot(leftb, rightb) >= min_distance_in_pk
+    ]
 
     # Compute tp / fp / fn
     positives = [False for _ in range(len(ref))]
