@@ -1,8 +1,12 @@
 from pathlib import Path
 import os
+import sys
+
+sys.path.append(os.getcwd())
+
 from src.utils import struct_to_pairs
 
-path = Path(r"resources\data_structures")
+path = Path(r"resources/data_structures")
 
 for f_in in os.listdir(path):
     dirname, _ = os.path.splitext(f_in)
