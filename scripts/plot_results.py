@@ -4,198 +4,340 @@ import re
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import seaborn as sns
 
 from src.utils import get_scores_df
 
 ## Score predictions
-results_path = Path("resources/results/predictions/sequencewise")
-files = os.listdir(results_path)
+# module load viennarna/2.5.0
+# folder = "sequencewise"
+# results_path = Path("resources/results/predictions") / folder
+# files = os.listdir(results_path)
+#
+#
+# def filename_to_model_name(filename):
+#     filename = filename.split(".csv")[0]
+#     filename = (
+#         filename.replace("_sequencewise", "")
+#         .replace("_familywise", "")
+#         .replace("_16S23S", "")
+#     )
+#     parts = filename.split("_")
+#     model_transform = {
+#         "dividefold": "DivideFold",
+#         "linearfold": "LinearFold",
+#         "mxfold2": "MXfold2",
+#         "rnafold": "RNAfold",
+#         "knotfold": "KnotFold",
+#         "mx": "MXfold2",
+#         "lf": "LinearFold",
+#         "rnaf": "RNAfold",
+#         "kf": "KnotFold",
+#         "ipknot": "IPknot",
+#         "pkiss": "pKiss",
+#         "probknot": "ProbKnot"
+#     }
+#     if parts[0] != "dividefold":
+#         model = model_transform[parts[0]]
+#         return model
+#
+#     cut_model = (
+#         parts[1]
+#         .replace("cnn", "CNN")
+#         .replace("mlp", "MLP")
+#         .replace("bilstm", "BiLSTM")
+#         .replace("oracle", "Oracle")
+#     )
+#     model = f"{model_transform[parts[0]]} {cut_model} ({parts[2]}) + {model_transform[parts[3]]}"
+#
+#     return model
+#
+#
+# scores = [
+#     get_scores_df(results_path / f)
+#     .assign(model=filename_to_model_name(f))
+#     for f in files
+# ]
+#
+# data_scores = pd.concat(scores).reset_index(drop=True)
+# assert data_scores.groupby("rna_name").struct.nunique().max() == 1
+# data_scores.to_csv(rf"resources/results/{folder}.csv", index=False)
+# data_scores[data_scores.pk_motif_tp + data_scores.pk_motif_fn > 0].to_csv(rf"resources/results/{folder}_pk.csv", index=False)
+# data_scores[data_scores.pk_motif_tp + data_scores.pk_motif_fn == 0].to_csv(rf"resources/results/{folder}_nopk.csv", index=False)
 
 
-def filename_to_model_name(filename):
-    filename = filename.split(".csv")[0]
-    filename = (
-        filename.replace("_sequencewise", "")
-        .replace("_familywise", "")
-        .replace("_16S23S", "")
-    )
-    parts = filename.split("_")
-    model_transform = {
-        "dividefold": "DivideFold",
-        "linearfold": "LinearFold",
-        "mxfold2": "MXfold2",
-        "rnafold": "RNAfold",
-        "mx": "MXfold2",
-        "lf": "LinearFold",
-        "rnaf": "RNAfold",
-    }
-    if parts[0] != "dividefold":
-        model = model_transform[parts[0]]
-        return model
-
-    cut_model = (
-        parts[1]
-        .replace("cnn", "CNN")
-        .replace("mlp", "MLP")
-        .replace("bilstm", "BiLSTM")
-        .replace("oracle", "Oracle")
-    )
-    model = f"{model_transform[parts[0]]} {cut_model} ({parts[2]}) + {model_transform[parts[3]]}"
-
-    return model
-
-
-scores = [
-    get_scores_df(results_path / f).assign(model=filename_to_model_name(f))
-    for f in files
-]
-
-data_scores = pd.concat(scores).reset_index(drop=True)
-
-
-def plot(data, yvar):
+def plot(
+    data,
+    yvar,
+    bins=[400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000],
+    hue="model",
+    how="boxplot",
+    ax_to_plot=None,
+    **kwargs,
+):
     data = data.copy()  # data[data.length >= 1000].copy()
-    bins = np.array(
-        [400, 600, 800, 1000, 1200, 1400, 1700, 2700, 3000, 3400, 3800, 4400]
-    )
-    data = data[data.length >= bins[0]]
+    bins = np.array(bins)
+    data = data[(data.length >= bins[0]) & (data.length < bins[-1])]
     data["bin"] = data.length.apply(
         lambda x: len(bins) - np.argmax(x >= bins[::-1]) - 1
     )
-    plt.figure()
-    ax = sns.boxplot(data, x="bin", y=yvar, hue="model")  # , palette="tab20")
+    ax = ax_to_plot
+    if ax_to_plot is None:
+        fig, ax = plt.subplots(figsize=(20, 6))
+    ax.tick_params(axis="both", which="major", labelsize=11)
+
+    plot_fnc = None
+    if how == "boxplot":
+        plot_fnc = sns.boxplot
+    elif how == "barplot":
+        plot_fnc = sns.barplot
+
+    ref_palette = mcolors.TABLEAU_COLORS
+    palette = {
+        "DivideFold + KnotFold": ref_palette["tab:blue"],
+        "ProbKnot": ref_palette["tab:orange"],
+        "KnotFold": ref_palette["tab:green"],
+        "IPknot": ref_palette["tab:red"],
+        "pKiss": ref_palette["tab:purple"],
+        "200 nc.": ref_palette["tab:blue"],
+        "400 nc.": ref_palette["tab:orange"],
+        "600 nc.": ref_palette["tab:green"],
+        "800 nc.": ref_palette["tab:red"],
+        "1000 nc.": ref_palette["tab:purple"],
+        "1200 nc.": ref_palette["tab:brown"],
+    }
+    ax = plot_fnc(
+        data,
+        x="bin",
+        y=yvar,
+        hue=hue,
+        hue_order=data[hue].unique(),
+        ax=ax,
+        palette=palette,
+        **kwargs,
+    )
     xtickslabels = [
         f"{str(a)}-{str(b-1)} nc.\n{data[data.bin == i].rna_name.nunique()} RNAs"
         for i, (a, b) in enumerate(zip(bins[:-1], bins[1:]))
         if i in data.bin.unique()
     ]
     ax.set_xticklabels(xtickslabels)
-    ax.set_xlabel("Length")
-    ax.set_ylabel(yvar.capitalize())
-    # plt.title(f"{yvar.capitalize()} vs length")
-    ax.legend(loc="upper right")
+    ax.set_xlabel("Sequence length", fontsize=16)
+    if yvar == "time":
+        ylabel = "Time (s)"
+    elif yvar == "fscore":
+        ylabel = "F-score"
+    elif yvar == "pk_motif_sen":
+        ylabel = "Recall"
+    elif yvar == "pk_motif_fscore":
+        ylabel = "F-score"
+    ax.set_ylabel(ylabel, fontsize=16)
+    if ("legend" not in kwargs) or (kwargs["legend"]):
+        loc = "upper right" if yvar != "time" else "upper left"
+        ax.legend(loc=loc, title=hue.capitalize(), prop={"size": 11}, title_fontsize=11)
 
 
-def plot_all(data):
-    plot(data, "fscore")
-    plt.ylim([0, 1])
-    # plot(data, "mcc")
-    plot(data, "time")
-    plt.ylim([0, 200])
-    plot(data, "memory")
-    if data.cut_break_rate.isna().sum() == 0:
-        plot(data, "cut_break_rate")
-        plt.ylim([0, 1])
-        plot(data, "cut_compression")
-    plt.show()
+## Pseudoknots table
+def format_pk_table(df):
+    df = df.copy()
+    df = df[
+        (~df.model.apply(lambda x: "DivideFold" in x))
+        | ((df.cut_compression > 0) & (df.length >= 1000))
+    ]
+    df = df[~df.model.str.contains("Oracle")]
+    subdfs = []
+    for model_groups in [
+        ("DivideFold", "KnotFold"),
+        ("ProbKnot",),
+        ("KnotFold",),
+        ("IPknot",),
+        ("pKiss",),
+    ]:
+        conds = [df.model.str.contains(x) for x in model_groups]
+        if len(conds) == 1:
+            conds.append(~df.model.str.contains("DivideFold"))
+        idx = pd.concat(conds, axis=1).all(axis=1)
+        subdata = df[idx].sort_values(
+            ["pk_motif_tp", "pk_motif_fscore"], ascending=False
+        )
+        subdf = subdata.groupby("rna_name").first().reset_index()
+        # subdata = df[idx]
+        # chosen_model = subdata.groupby("model")["pk_motif_sen"].mean() \
+        #                                                        .sort_values(ascending=False) \
+        #                                                        .index[0]
+        # subdf = subdata[subdata.model == chosen_model].reset_index(drop=True)
+        subdf.loc[:, "model"] = " + ".join(model_groups)
+        subdfs.append(subdf)
+    df = pd.concat(subdfs).reset_index(drop=True)
+    return df
 
 
-# Sequencewise
+df_pktable = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+df_pktable = format_pk_table(df_pktable)
+df_pktable = df_pktable[df_pktable.length >= 1000]  # RNAs longer than 1000 nc.
+pk_table = (
+    df_pktable.groupby("model")[["pk_motif_sen", "pk_motif_ppv", "pk_motif_fscore"]]
+    .mean()
+    .sort_values("pk_motif_sen", ascending=False)
+    .apply(lambda x: round(x, 3))
+)
+pk_table.columns = ["Recall", "Precision", "F-score"]
+
+## Pseudoknots table 16S 23S
+df_pktable = pd.read_csv(rf"resources/results/16S23S_pk.csv")
+df_pktable = format_pk_table(df_pktable)
+df_pktable["n_pk_motif"] = df_pktable.pk_motif_tp + df_pktable.pk_motif_fn
+table_16S = (
+    df_pktable[df_pktable.rna_name == "CRW_16S_B_Ac_75"]
+    .sort_values(["pk_motif_tp", "pk_motif_fscore"], ascending=False)[
+        ["model", "pk_motif_tp", "n_pk_motif", "pk_motif_fp"]
+    ]
+    .set_index("model", drop=True)
+)
+table_23S = (
+    df_pktable[df_pktable.rna_name == "CRW_23S_B_F_46"]
+    .sort_values(["pk_motif_tp", "pk_motif_fscore"], ascending=False)[
+        ["model", "pk_motif_tp", "n_pk_motif", "pk_motif_fp"]
+    ]
+    .set_index("model", drop=True)
+)
+
+## Secondary structure table 16S 23S
+df_pktable = pd.read_csv(rf"resources/results/16S23S_pk.csv")
+df_pktable = format_pk_table(df_pktable)
+table_16S = (
+    df_pktable[df_pktable.rna_name == "CRW_16S_B_Ac_75"]
+    .sort_values("fscore", ascending=False)[["model", "fscore", "time"]]
+    .set_index("model", drop=True)
+    .apply(lambda x: round(x, 3))
+)
+table_23S = (
+    df_pktable[df_pktable.rna_name == "CRW_23S_B_F_46"]
+    .sort_values("fscore", ascending=False)[["model", "fscore", "time"]]
+    .set_index("model", drop=True)
+    .apply(lambda x: round(x, 3))
+)
+
+## Structure prediction models
+data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+data_scores = data_scores[
+    (~data_scores.model.apply(lambda x: "DivideFold" in x))
+    | (data_scores.cut_compression > 0)
+]
 data = pd.concat(
     [
         data_scores[data_scores.model == x]
         for x in [
-            # "RNAfold",
-            # "LinearFold",
-            # "MXfold2",
-            # "DivideFold MLP (meta) + RNAfold",
-            # "DivideFold MLP (meta) + LinearFold",
-            # "DivideFold MLP (meta) + MXfold2",
-            # "DivideFold BiLSTM (meta) + RNAfold",
-            # "DivideFold BiLSTM (meta) + LinearFold",
-            # "DivideFold BiLSTM (meta) + MXfold2",
-            # "DivideFold CNN (200) + RNAfold",
-            # "DivideFold CNN (200) + LinearFold",
-            # "DivideFold CNN (200) + MXfold2",
-            # "DivideFold CNN (400) + RNAfold",
-            # "DivideFold CNN (400) + LinearFold",
-            # "DivideFold CNN (400) + MXfold2",
-            # "DivideFold CNN (600) + RNAfold",
-            # "DivideFold CNN (600) + LinearFold",
-            # "DivideFold CNN (600) + MXfold2",
-            # "DivideFold CNN (800) + RNAfold",
-            # "DivideFold CNN (800) + LinearFold",
-            # "DivideFold CNN (800) + MXfold2",
-            # "DivideFold CNN (1000) + RNAfold",
-            # "DivideFold CNN (1000) + LinearFold",
-            # "DivideFold CNN (1000) + MXfold2",
-            # "DivideFold CNN (1200) + RNAfold",
-            # "DivideFold CNN (1200) + LinearFold",
-            # "DivideFold CNN (1200) + MXfold2",
-            "DivideFold CNN (meta) + RNAfold",
-            "DivideFold CNN (meta) + LinearFold",
-            "DivideFold CNN (meta) + MXfold2",
-            # "DivideFold Oracle (200) + RNAfold",
-            # DivideFold Oracle (200) + LinearFold",
-            # "DivideFold Oracle (200) + MXfold2",
+            "ProbKnot",
+            "KnotFold",
+            "IPknot",
+            "pKiss",
         ]
     ]
 )
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
 
-
-def clean_data(data):
-    data = data.copy()
-    if "fscore" in data.columns:
-        data = data[data.fscore.notna()]
-    # data = data[(data.length < 1650) | ((data.length > 2750))]
-    seqs_all_models = data.groupby("seq").model.nunique() == data.model.nunique()
-    # data = data[(data.seq.isin(seqs_all_models[seqs_all_models].index))]
-    return data
-
-
-data.model = data.model.apply(lambda x: x.replace(" (meta)", "").replace(" (200)", ""))
-plot_all(clean_data(data))
+fig, axs = plt.subplots(2, sharex=True, figsize=(7, 6))
+plot(data, "fscore", bins=[400, 600, 800, 1000], ax_to_plot=axs[0], legend=False)
+axs[0].set_ylim(bottom=0.0, top=1.0)
+plot(
+    data,
+    "time",
+    bins=[400, 600, 800, 1000],
+    ax_to_plot=axs[1],
+    log_scale=True,
+    legend=False,
+)
+axs[1].set_ylim(bottom=1, top=2000)
 plt.show()
 
+## Hyperparameter evaluation
+data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+data_scores = data_scores[
+    (~data_scores.model.apply(lambda x: "DivideFold" in x))
+    | (data_scores.cut_compression > 0)
+]
+data = pd.concat(
+    [
+        data_scores[data_scores.model == x]
+        for x in [
+            "DivideFold CNN (200) + KnotFold",
+            "DivideFold CNN (400) + KnotFold",
+            "DivideFold CNN (600) + KnotFold",
+            "DivideFold CNN (800) + KnotFold",
+            "DivideFold CNN (1000) + KnotFold",
+            "DivideFold CNN (1200) + KnotFold",
+        ]
+    ]
+)
+data["Maximum fragment length"] = data.model.apply(
+    lambda x: x.split("(")[1].split(")")[0] + " nc."
+)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
 
-# def get_ranking(data, start, end, reorder=True):
-#     data = data.copy()
-#     data_view = data[(data.length >= start) & (data.length < end)]
-#     print(f"{start} to {end}: {data_view.rna_name.nunique()} RNAs")
-#     df = pd.DataFrame(
-#         {
-#             "cut_break_rate": data_view.groupby("model").cut_break_rate.mean(),
-#             "cut_compression": data_view.groupby("model").cut_compression.mean(),
-#             "fscore": data_view.groupby("model").fscore.mean(),
-#             "time": data_view.groupby("model").time.mean(),
-#         }
-#     )
-#     if df.shape[0] > 0:
-#         df = df.loc[data.model.unique(), :]
-#     if reorder:
-#         df = df.sort_values("fscore", ascending=False)
-#     df.cut_break_rate = df.cut_break_rate.apply(
-#         lambda x: np.nan if pd.isna(x) else str(round(100 * x, 2)) + "%"
-#     )
-#     df.cut_compression = df.cut_compression.apply(
-#         lambda x: np.nan if pd.isna(x) else str(round(100 * x)) + "%"
-#     )
-#     df.fscore = df.fscore.apply(lambda x: round(x, 4))
-#     return df
-#
-#
-# ranks = get_ranking(data, 1000, 5000)
-# ranks.to_excel(r"resources/results/cutting_metrics.xlsx")
-# 200;400: DO NOT CUT
-# 400;1300: 1 step
-# 1300;1600: 200
-# 1600;2000: 1 step
-# 2000;4300: 2000
-# ranks = [
-#     get_ranking(data, i * 100, (i + 1) * 100, reorder=False)[["fscore"]].rename(
-#         columns={"fscore": f"fscore_{i*100}-{(i+1)*100}"}
-#     )
-#     for i in range(43)
-# ]
-# ranks = [r for r in ranks if r.shape[0]]
-# ranks = pd.concat(ranks, axis=1)
-#
-# X = [int(c.split("_")[1].split("-")[0]) for c in ranks.columns]
-# ranks = ranks.loc[[idx for idx in ranks.index if "fusion" not in idx], :]
-# cmap = plt.colormaps["jet"]
-# for i, idx in enumerate(ranks.index):
-#     color = cmap(i / ranks.shape[0])  # if "steps" not in idx else "black"
-#     plt.plot(X, ranks.loc[idx, :], color=color, label=idx)
-# plt.legend(loc="lower left", prop={"size": 7})
-# plt.show()
+plot(
+    data,
+    "fscore",
+    hue="Maximum fragment length",
+    bins=[1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000],
+)
+plt.ylim(bottom=0.1, top=0.9)
+plt.show()
+
+## Pseudoknot graph
+data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+data = format_pk_table(data_scores)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+fig, axs = plt.subplots(2, sharex=True, figsize=(20, 6))
+plot(
+    data,
+    "pk_motif_sen",
+    bins=[1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000],
+    how="barplot",
+    ax_to_plot=axs[0],
+)
+axs[0].set_ylim(bottom=0.0, top=1.0)
+plot(
+    data,
+    "pk_motif_fscore",
+    bins=[1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000],
+    how="barplot",
+    ax_to_plot=axs[1],
+)
+axs[1].set_ylim(bottom=0.0, top=0.15)
+plt.show()
+
+## Secondary structure graph with pk
+data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+data_scores = data_scores[
+    (~data_scores.model.apply(lambda x: "DivideFold" in x))
+    | (data_scores.cut_compression > 0)
+]
+data = pd.concat(
+    [
+        data_scores[data_scores.model == x]
+        for x in [
+            "DivideFold CNN (1000) + KnotFold",
+            "ProbKnot",
+            "KnotFold",
+            "IPknot",
+            "pKiss",
+        ]
+    ]
+)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+data.model = data.model.apply(lambda x: x.replace(" (1000)", "").replace(" CNN", ""))
+
+plot(data, "fscore", bins=[1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000])
+plt.ylim([0, 1])
+plot(
+    data,
+    "time",
+    bins=[1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000],
+    log_scale=True,
+)
+plt.ylim([10, 10000])
+plt.show()
