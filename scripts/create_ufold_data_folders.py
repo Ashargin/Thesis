@@ -23,4 +23,4 @@ for n, se, st in zip(names, seqs, structs):
             nuc = se[i]
             if nuc not in ["A", "U", "C", "G"]:
                 nuc = np.random.choice(["A", "U", "C", "G"])
-            f_out.write(f"{i+1} {se[i]} {p}\n")
+            f_out.write(f"{i+1} {nuc} {p}\n")
