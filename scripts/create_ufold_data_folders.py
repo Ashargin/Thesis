@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import sys
+import numpy as np
 
 sys.path.append(os.getcwd())
 
@@ -19,4 +20,7 @@ for f_in in os.listdir(path):
         pairs = struct_to_pairs(st)
         with open(path / dirname / (n + ".bpseq"), "w") as f_out:
             for i, p in enumerate(pairs):
+                nuc = se[i]
+                if nuc not in ["A", "U", "C", "G"]:
+                    nuc = np.random.choice(["A", "U", "C", "G"])
                 f_out.write(f"{i+1} {se[i]} {p}\n")
