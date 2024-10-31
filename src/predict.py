@@ -101,10 +101,12 @@ def ufold_predict(seq, path_ufold="../UFold", timeout=None):
     torch.cuda.empty_cache()
 
     # prepare input file
-    input_path = Path("data/input.txt")
-    output_path = Path("results/input_dot_ct_file.txt")
-    with open(input_path, "w") as f:
-        f.write(f">0\n{seq}\n")
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
+    temp_rna_name = f"TEMP_RNA_NAME_{suffix}"
+    path_in = path_ufold / "data" / "input.txt"
+    path_out = path_ufold / "results" / "input_dot_ct_file.txt"
+    with open(path_in, "w") as f:
+        f.write(f">{temp_rna_name}\n{seq}\n")
 
     # predict
     subprocess.run(["python", "ufold_predict.py"], cwd=path_ufold)
@@ -113,13 +115,13 @@ def ufold_predict(seq, path_ufold="../UFold", timeout=None):
     memory = r / t
 
     # read output
-    with open(output_path, "r") as f:
+    with open(path_out, "r") as f:
         pred_txt = f.read()
     pred_lines = [s for s in pred_txt.split("\n") if s]
     pred = pred_lines[2]
 
-    os.remove(input_path)
-    os.remove(output_path)
+    os.remove(path_in)
+    os.remove(path_out)
 
     if timeout is not None:
         signal.alarm(0)
