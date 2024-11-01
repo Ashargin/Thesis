@@ -92,10 +92,19 @@ def ufold_predict(seq, path_ufold="../UFold", timeout=None):
     # path_ufold is the path to the UFold repository
     # https://github.com/uci-cbcl/UFold
 
+    # UFold rejects sequences longer then 600 nt
     if len(seq) > 600:
         raise ValueError(
             f"Discarded sequence of length {len(seq)}. UFold only accepts sequences shorter than 600 nt."
         )
+
+    # UFold only accept A, U, C, G bases
+    authorized_bases = ["A", "U", "C", "G"]
+    seq_bases = list(seq)
+    for i, b in enumerate(seq_bases):
+        if b not in authorized_bases:
+            seq_bases[i] = np.random.choice(authorized_bases)
+    seq = "".join(seq_bases)
 
     tstart = time.time()
     if timeout is not None:
