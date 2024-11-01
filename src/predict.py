@@ -92,6 +92,11 @@ def ufold_predict(seq, path_ufold="../UFold", timeout=None):
     # path_ufold is the path to the UFold repository
     # https://github.com/uci-cbcl/UFold
 
+    if len(seq) > 600:
+        raise ValueError(
+            f"Discarded sequence of length {len(seq)}. UFold only accepts sequences shorter than 600 nt."
+        )
+
     tstart = time.time()
     if timeout is not None:
         signal.alarm(timeout)
@@ -104,7 +109,7 @@ def ufold_predict(seq, path_ufold="../UFold", timeout=None):
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     temp_rna_name = f"TEMP_RNA_NAME_{suffix}"
     path_in = path_ufold / "data" / "input.txt"
-    path_out = path_ufold / "results" / "input_dot_ct_file.txt"
+    path_out = path_ufold / "results" / "save_ct_file" / f"{temp_rna_name}.ct"
     with open(path_in, "w") as f:
         f.write(f">{temp_rna_name}\n{seq}\n")
 
@@ -117,8 +122,12 @@ def ufold_predict(seq, path_ufold="../UFold", timeout=None):
     # read output
     with open(path_out, "r") as f:
         pred_txt = f.read()
-    pred_lines = [s for s in pred_txt.split("\n") if s]
-    pred = pred_lines[2]
+    pred_lines = [s for s in pred_txt.split("\n") if s][1:]
+    pairs = np.array([int(l.split("\t")[4]) for l in pred_lines])
+
+    # eliminate occasional conflicts from UFold output
+    pairs = np.array([j if pairs[j - 1] - 1 == i else 0 for i, j in enumerate(pairs)])
+    pred = pairs_to_struct(pairs)
 
     os.remove(path_in)
     os.remove(path_out)
