@@ -384,7 +384,7 @@ def pkiss_predict(seq, timeout="meta"):
     return pred, ttot, 0.0
 
 
-def ipknot_predict(seq, timeout="meta"):
+def ipknot_predict(seq, path_ipknot="../ipknot", timeout=None):
     # https://github.com/satoken/ipknot
 
     tstart = time.time()
@@ -392,6 +392,7 @@ def ipknot_predict(seq, timeout="meta"):
         if timeout == "meta":
             timeout = 50 + (len(seq) > 1000) * 150 + (len(seq) > 2000) * 400
         signal.alarm(timeout)
+    path_ipknot = Path(path_ipknot)
 
     suffix = datetime.datetime.now().strftime("%Y.%m.%d:%H.%M.%S:%f")
     path_in = f"temp_ipknot_in_{suffix}.fa"
@@ -399,7 +400,7 @@ def ipknot_predict(seq, timeout="meta"):
         f.write(f">0\n{seq}\n")
 
     try:
-        res = os.popen(f"ipknot {path_in}").read()
+        res = os.popen(f"{path_ipknot / 'bin' / 'ipknot'} {path_in}").read()
     except TimeoutError:
         os.remove(path_in)
         timeout_handler(None, None)
