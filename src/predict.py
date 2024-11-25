@@ -22,26 +22,12 @@ from src.utils import (
     pairs_to_struct,
     optimize_pseudoknots,
 )
-from src.models.loss import inv_exp_distance_to_cut_loss
 
 # Settings
-DEFAULT_CUT_MODEL = Path(__file__).parents[1] / "resources/models/CNN1D"
+DEFAULT_CUT_MODEL = Path(__file__).parents[1] / "resources/models/CNN1D.keras"
 
 # Load cut model
-default_cut_model = keras.models.load_model(
-    DEFAULT_CUT_MODEL,
-    compile=False,
-)
-default_cut_model.compile(
-    optimizer="adam",
-    loss=inv_exp_distance_to_cut_loss,
-    metrics=["accuracy"],
-    run_eagerly=True,
-)
-# default_cut_model = keras.layers.TFSMLayer(
-#     DEFAULT_CUT_MODEL,
-#     call_endpoint="serving_default",
-# )
+default_cut_model = keras.models.load_model(DEFAULT_CUT_MODEL)
 
 # Timeout handler
 def timeout_handler(signum, frame):
