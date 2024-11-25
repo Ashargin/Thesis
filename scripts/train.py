@@ -6,28 +6,32 @@ from tensorflow import keras
 
 # import torch
 # from transformers import AutoTokenizer, AutoModel
-from scipy import signal
+import scipy.signal
 from pathlib import Path
 
 from src.utils import format_data, apply_mutation
 from src.models.mlp import MLP
 from src.models.cnn_1d import CNN1D
 from src.models.bilstm import BiLSTM
-from src.models.loss import inv_exp_distance_to_cut_loss
+from src.predict import oracle_get_cuts
 
 # from src.utils import seq2kmer
 
 MAX_MOTIFS = 200
 MAX_DIL = 256
 DATA_AUGMENT_MUTATION = True
+MIN_LEN = 400
+AUGMENT_STRUCTS = True
 
 # Load model
-# model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
+model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
 # model = MLP(input_shape=(None, MAX_MOTIFS + 4))
-model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
+# model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
+pretrained_model = keras.models.load_model(r"resources/models/CNN1D.keras")
+model.set_weights(pretrained_model.weights)
 model.compile(
     optimizer="adam",
-    loss=inv_exp_distance_to_cut_loss,
+    loss="mean_squared_error",
     run_eagerly=True,
 )
 
@@ -36,10 +40,11 @@ model.compile(
 def motif_data_generator(
     path_in,
     max_motifs=MAX_MOTIFS,
-    min_len=400,
+    min_len=MIN_LEN,
     max_len=None,
     from_cache=False,
     data_augment_mutation=DATA_AUGMENT_MUTATION,
+    loss_lbda=0.5,
 ):
     files = None
     df_in = None
@@ -85,21 +90,40 @@ def motif_data_generator(
             seq, struct, cuts = row.seq, row.struct, row.cuts
 
             if data_augment_mutation:
-                seq, struct = apply_mutation(
-                    seq, struct, mutation_proba=0.1 * np.random.random()
+                new_seq, new_struct = apply_mutation(
+                    seq,
+                    struct,
+                    mutation_proba=0.1 * np.random.random(),
+                    struct_deletion_proba=0.1 * np.random.random()
+                    if AUGMENT_STRUCTS
+                    else 0.0,
                 )
+                seq = new_seq
+                if new_struct != struct:
+                    struct = new_struct
+                    cuts, outer = oracle_get_cuts(struct)
+                    cuts = str(cuts).replace(",", "")
 
             seq_mat = format_data(seq, max_motifs=max_motifs)
             cuts_mat = np.array([float(c) for c in cuts[1:-1].split(" ")])
 
+            # Inverse exponential distance to cut points loss
+            loss_array = np.abs(
+                cuts_mat.reshape((1, -1)) - np.arange(len(seq)).reshape((-1, 1))
+            ).min(axis=1)
+            loss_array = np.exp(-loss_lbda * loss_array)
+
         i += 1
-        if (max_len is not None and seq_mat.shape[0] > max_len) or (
-            min_len is not None and seq_mat.shape[0] <= min_len
+        if (max_len is not None and len(seq) > max_len) or (
+            min_len is not None and len(seq) <= min_len
         ):
             continue
 
-        yield seq_mat.reshape((1, seq_mat.shape[0], max_motifs + 4)), cuts_mat.reshape(
-            (1, cuts_mat.shape[0])
+        assert seq_mat.shape == (len(seq), max_motifs + 4)
+        assert loss_array.shape == (len(seq),)
+
+        yield seq_mat.reshape((1, len(seq), max_motifs + 4)), loss_array.reshape(
+            (1, len(seq))
         )
 
 
@@ -152,28 +176,35 @@ def motif_data_generator(
 train_path = Path("resources/data_splits/train")
 val_path = Path("resources/data_splits/validation_sequencewise")
 train_gen = motif_data_generator(train_path)
-val_gen = motif_data_generator(val_path)
+val_gen = motif_data_generator(val_path, data_augment_mutation=False)
 histories = []
 losses = []
+i = 0
 while True:
     history = model.fit(
         train_gen,
         validation_data=val_gen,
-        steps_per_epoch=378,
+        steps_per_epoch=3780,  # 37796 / 9138
         epochs=1,
-        validation_steps=33,
+        validation_steps=330,  # 3334 / 761
     )
     histories.append(history.history)
     this_loss = round(100000 * np.mean(history.history["val_loss"]), 2)
 
     must_save = (not losses) or (this_loss < min(losses))
     if must_save:
-        model.save(Path("resources/models/BiLSTM"))
+        model.save(
+            Path(
+                f"resources/models/CNN1D_{MIN_LEN}{'STRUCTAUG' if AUGMENT_STRUCTS else ''}.keras"
+            )
+        )
     losses.append(this_loss)
+    print(f"Epoch {i+1}:")
     print(losses)
     print("SAVED" if must_save else "DISCARDED")
+    i += 1
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 #
 # loss = history.history["loss"]
@@ -191,39 +222,39 @@ import matplotlib.pyplot as plt
 # )
 # plt.show()
 #
-my_model = keras.models.load_model(Path("resources/models/CNN1D"), compile=False)
-my_model.compile(
-    optimizer="adam",
-    loss=inv_exp_distance_to_cut_loss,
-    run_eagerly=True,
-)
-test_datagen = motif_data_generator(Path("resources/data_splits/test_sequencewise"))
-
-
-def plot_cut_probabilities():
-    seq_mat, cuts_mat = next(test_datagen)
-    preds = my_model(seq_mat).numpy().ravel()
-    cuts_mat = cuts_mat.ravel().astype(int)
-
-    X = np.arange(len(preds)) + 1
-    for i, x in enumerate(X[cuts_mat]):
-        plt.plot(
-            [x, x],
-            [0, 1],
-            color="black",
-            linewidth=1.5,
-            label="True cut points" if i == 0 else "",
-        )
-    plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
-
-    peaks = signal.find_peaks(preds, height=0.28, distance=12)[0]
-    plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
-
-    plt.xlim([X[0], X[-1]])
-    plt.ylim([0, 1])
-
-    plt.title(
-        "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
-    )
-    plt.legend()
-    plt.show()
+# my_model = keras.models.load_model(Path("resources/models/CNN1D"), compile=False)
+# my_model.compile(
+#     optimizer="adam",
+#     loss=inv_exp_distance_to_cut_loss,
+#     run_eagerly=True,
+# )
+# test_datagen = motif_data_generator(Path("resources/data_splits/test_sequencewise"))
+#
+#
+# def plot_cut_probabilities():
+#     seq_mat, cuts_mat = next(test_datagen)
+#     preds = my_model(seq_mat).numpy().ravel()
+#     cuts_mat = cuts_mat.ravel().astype(int)
+#
+#     X = np.arange(len(preds)) + 1
+#     for i, x in enumerate(X[cuts_mat]):
+#         plt.plot(
+#             [x, x],
+#             [0, 1],
+#             color="black",
+#             linewidth=1.5,
+#             label="True cut points" if i == 0 else "",
+#         )
+#     plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
+#
+#     peaks = scipy.signal.find_peaks(preds, height=0.28, distance=12)[0]
+#     plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
+#
+#     plt.xlim([X[0], X[-1]])
+#     plt.ylim([0, 1])
+#
+#     plt.title(
+#         "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
+#     )
+#     plt.legend()
+#     plt.show()

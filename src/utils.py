@@ -209,9 +209,11 @@ def seq2kmer(seq, k):
     return kmers
 
 
-def apply_mutation(seq, struct, mutation_proba=1.0):
+def apply_mutation(seq, struct, mutation_proba=1.0, struct_deletion_proba=0.0):
     struct_no_pk = re.sub("[^\(\)\.]", ".", struct)
     pairs = struct_to_pairs(struct_no_pk)
+
+    # Sequence mutation
     mutations = [
         ("A", "U"),
         ("U", "A"),  # Watson-Crick
@@ -235,7 +237,21 @@ def apply_mutation(seq, struct, mutation_proba=1.0):
                 mutated_seq[j] = seq[j]
     mutated_seq = "".join(mutated_seq)
 
-    return mutated_seq, struct
+    # Structure deletion
+    for i, j in enumerate(pairs):
+        j -= 1
+        if i < j:
+            if np.random.random() < struct_deletion_proba:
+                pairs[i] = 0
+                pairs[j] = 0
+    mutated_struct = pairs_to_struct(pairs)
+    mutated_struct = list(mutated_struct)
+    for i, c in enumerate(struct):
+        if c not in [".", "(", ")"]:
+            mutated_struct[i] = c
+    mutated_struct = "".join(mutated_struct)
+
+    return mutated_seq, mutated_struct
 
 
 def eval_energy(seq, struct):
