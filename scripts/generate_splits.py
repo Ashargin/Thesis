@@ -1,23 +1,12 @@
 import os
-import sys
-import random
-from pathlib import Path
 import time
-import datetime
 import re
 import numpy as np
-from scipy import signal
-import pickle
+import pandas as pd
 import itertools
+from pathlib import Path
 
-from src.utils import eval_energy, get_scores
-
-all_rna_names = []
-all_seqs = []
-all_structs = []
-all_cuts = []
-all_outers = []
-all_spans = []
+from src.utils import optimize_pseudoknots
 
 
 def oracle_get_cuts(struct):
@@ -110,7 +99,7 @@ def oracle_get_cuts(struct):
     return cuts, outer
 
 
-def divide_get_fragment_ranges_preds(
+def dividefold_get_fragment_ranges_preds(
     seq,
     rna_name,
     spans,
@@ -122,18 +111,16 @@ def divide_get_fragment_ranges_preds(
     max_motifs=None,
     fuse_to=None,
     struct="",
-    evaluate_cutting_model=True,
+    return_cuts=True,
 ):
     tstart = time.time()
 
     if max_steps == 0 or len(seq) <= max_length and min_steps <= 0:
-        pred, a, b, ttot, memory = (
-            predict_fnc(seq)
-            if not evaluate_cutting_model
-            else ("." * len(seq), None, None, 0.0, 0.0)
+        pred, ttot, memory = (
+            predict_fnc(seq) if not return_cuts else ("." * len(seq), 0.0, 0.0)
         )
         frag_preds = [(np.array([[0, len(seq) - 1]]).astype(int), pred)]
-        return frag_preds, a, b, ttot, memory
+        return frag_preds, ttot, memory
 
     if struct:
         cuts, outer = oracle_get_cuts(struct)
@@ -144,7 +131,7 @@ def divide_get_fragment_ranges_preds(
         all_outers.append(outer)
         all_spans.append(str(spans).replace(",", ""))
     else:
-        cuts, outer = divide_get_cuts(
+        cuts, outer = dividefold_get_cuts(
             seq, cut_model=cut_model, max_motifs=max_motifs, fuse_to=fuse_to
         )
 
@@ -188,7 +175,7 @@ def divide_get_fragment_ranges_preds(
         if struct:
             substruct = struct[left_b:right_b]
             assert substruct.count("(") == substruct.count(")")
-        this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+        this_frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
             rna_name,
             new_spans,
@@ -200,7 +187,7 @@ def divide_get_fragment_ranges_preds(
             max_motifs=max_motifs,
             fuse_to=fuse_to,
             struct=substruct,
-            evaluate_cutting_model=evaluate_cutting_model,
+            return_cuts=return_cuts,
         )
 
         for _range, pred in this_frag_preds:
@@ -233,7 +220,7 @@ def divide_get_fragment_ranges_preds(
             right_substruct = struct[left_b_2:right_b_2]
             substruct = left_substruct + right_substruct
             assert substruct.count("(") == substruct.count(")")
-        this_frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+        this_frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
             rna_name,
             new_spans,
@@ -245,7 +232,7 @@ def divide_get_fragment_ranges_preds(
             max_motifs=max_motifs,
             fuse_to=fuse_to,
             struct=substruct,
-            evaluate_cutting_model=evaluate_cutting_model,
+            return_cuts=return_cuts,
         )
 
         sep = right_b_1 - left_b_1
@@ -276,10 +263,10 @@ def divide_get_fragment_ranges_preds(
     memory = max(memories)
     ttot = time.time() - tstart
 
-    return frag_preds, None, None, ttot, memory
+    return frag_preds, ttot, memory
 
 
-def divide_predict(
+def dividefold_predict(
     seq,
     rna_name,
     max_length=50,
@@ -292,23 +279,25 @@ def divide_predict(
     fuse_to=None,
     struct="",
     struct_to_print_fscores="",
-    evaluate_cutting_model=True,
+    return_cuts=True,
 ):
     tstart = time.time()
 
-    if min_steps is None:
-        min_steps = 1 if len(seq) >= 400 else 0
-        if max_length is not None:
-            min_steps = 0
-        if max_steps is not None:
-            min_steps = min(min_steps, max_steps)
     if max_length is None:
-        max_length = 2000 if len(seq) < 1300 or len(seq) >= 1600 else 200
+        if (predict_fnc is None) or (predict_fnc.__name__ != "knotfold_predict"):
+            max_length = 2000 if len(seq) > 2500 else 400
+        else:
+            max_length = 1000
 
     if max_steps is not None and max_steps < min_steps:
-        raise Warning("max_steps must be greater than min_steps.")
+        raise ValueError("max_steps must be greater than min_steps.")
 
-    frag_preds, _, _, _, memory = divide_get_fragment_ranges_preds(
+    if struct:
+        struct = optimize_pseudoknots(struct)
+    if struct_to_print_fscores:
+        struct_to_print_fscores = optimize_pseudoknots(struct_to_print_fscores)
+
+    frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
         seq,
         rna_name,
         [(1, len(seq))],
@@ -320,29 +309,51 @@ def divide_predict(
         max_motifs=max_motifs,
         fuse_to=fuse_to,
         struct=struct,
-        evaluate_cutting_model=evaluate_cutting_model,
+        return_cuts=return_cuts,
     )
 
-    if evaluate_cutting_model:
-        return frag_preds, None, None, None, None
+    if return_cuts:
+        ttot = time.time() - tstart
+        return frag_preds, ttot, memory
 
 
-main_df = pd.concat(
-    [train_df, validation_df, test_df, rfam_validation_df, rfam_test_df]
-)
-for _, row in main_df.iterrows():
-    x = divide_predict(row.seq, row.rna_name, struct=row.struct)
+path_structures = Path("resources/data_structures")
+path_splits = Path("resources/data_splits")
+split_dfs = []
+for f in os.listdir(path_structures):
+    print(f"Processing {f}...")
+    global all_rna_names
+    global all_seqs
+    global all_structs
+    global all_cuts
+    global all_outers
+    global all_spans
+    all_rna_names = []
+    all_seqs = []
+    all_structs = []
+    all_cuts = []
+    all_outers = []
+    all_spans = []
+    txt = open(path_structures / f, "r").read()
+    lines = txt.strip().split("\n")
+    names, seqs, structs = lines[::3], lines[1::3], lines[2::3]
+    for n, se, st in zip(names, seqs, structs):
+        n = n.split("#Name: ")[1]
+        st = optimize_pseudoknots(st)
+        x = dividefold_predict(se, n, struct=st)
 
-splits_df = pd.DataFrame(
-    {
-        "rna_name": all_rna_names,
-        "span": all_spans,
-        "seq": all_seqs,
-        "struct": all_structs,
-        "cuts": all_cuts,
-        "outer": all_outers,
-    }
-)
+    split_df = pd.DataFrame(
+        {
+            "rna_name": all_rna_names,
+            "span": all_spans,
+            "seq": all_seqs,
+            "struct": all_structs,
+            "cuts": all_cuts,
+            "outer": all_outers,
+        }
+    )
+    split_df.to_csv(path_splits / f.replace(".dbn", ".csv"))
+    split_dfs.append(split_df)
 
 for _, row in splits_df.iterrows():
     ref_seq = main_df[main_df.rna_name == row.rna_name].iloc[0].seq

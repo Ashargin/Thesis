@@ -36,7 +36,8 @@ from src.utils import get_scores_df
 #         "kf": "KnotFold",
 #         "ipknot": "IPknot",
 #         "pkiss": "pKiss",
-#         "probknot": "ProbKnot"
+#         "probknot": "ProbKnot",
+#         "ufold": "UFold",
 #     }
 #     if parts[0] != "dividefold":
 #         model = model_transform[parts[0]]
@@ -96,16 +97,17 @@ def plot(
     ref_palette = mcolors.TABLEAU_COLORS
     palette = {
         "DivideFold + KnotFold": ref_palette["tab:blue"],
-        "ProbKnot": ref_palette["tab:orange"],
-        "KnotFold": ref_palette["tab:green"],
-        "IPknot": ref_palette["tab:red"],
+        "IPknot": ref_palette["tab:orange"],
+        "ProbKnot": ref_palette["tab:green"],
+        "KnotFold": ref_palette["tab:red"],
         "pKiss": ref_palette["tab:purple"],
-        "200 nc.": ref_palette["tab:blue"],
-        "400 nc.": ref_palette["tab:orange"],
-        "600 nc.": ref_palette["tab:green"],
-        "800 nc.": ref_palette["tab:red"],
-        "1000 nc.": ref_palette["tab:purple"],
-        "1200 nc.": ref_palette["tab:brown"],
+        "UFold": ref_palette["tab:brown"],
+        "200 nt": ref_palette["tab:blue"],
+        "400 nt": ref_palette["tab:orange"],
+        "600 nt": ref_palette["tab:green"],
+        "800 nt": ref_palette["tab:red"],
+        "1000 nt": ref_palette["tab:purple"],
+        "1200 nt": ref_palette["tab:brown"],
     }
     ax = plot_fnc(
         data,
@@ -118,7 +120,7 @@ def plot(
         **kwargs,
     )
     xtickslabels = [
-        f"{str(a)}-{str(b-1)} nc.\n{data[data.bin == i].rna_name.nunique()} RNAs"
+        f"{str(a)}-{str(b-1)} nt\n{data[data.bin == i].rna_name.nunique()} RNAs"
         for i, (a, b) in enumerate(zip(bins[:-1], bins[1:]))
         if i in data.bin.unique()
     ]
@@ -149,10 +151,11 @@ def format_pk_table(df):
     subdfs = []
     for model_groups in [
         ("DivideFold", "KnotFold"),
+        ("IPknot",),
         ("ProbKnot",),
         ("KnotFold",),
-        ("IPknot",),
         ("pKiss",),
+        ("UFold",),
     ]:
         conds = [df.model.str.contains(x) for x in model_groups]
         if len(conds) == 1:
@@ -175,7 +178,7 @@ def format_pk_table(df):
 
 df_pktable = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 df_pktable = format_pk_table(df_pktable)
-df_pktable = df_pktable[df_pktable.length >= 1000]  # RNAs longer than 1000 nc.
+df_pktable = df_pktable[df_pktable.length >= 1000]  # RNAs longer than 1000 nt
 pk_table = (
     df_pktable.groupby("model")[["pk_motif_sen", "pk_motif_ppv", "pk_motif_fscore"]]
     .mean()
@@ -183,6 +186,21 @@ pk_table = (
     .apply(lambda x: round(x, 3))
 )
 pk_table.columns = ["Recall", "Precision", "F-score"]
+
+## Secondary structure table
+df_fscoretable = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+df_fscoretable = format_pk_table(df_fscoretable)
+df_fscoretable = df_fscoretable[~df_fscoretable.model.isin(["pKiss"])]
+df_fscoretable = df_fscoretable[
+    df_fscoretable.length >= 1000
+]  # RNAs longer than 1000 nt
+fscore_table = (
+    df_fscoretable.groupby("model")[["sen", "ppv", "fscore"]]
+    .mean()
+    .sort_values("fscore", ascending=False)
+    .apply(lambda x: round(x, 3))
+)
+fscore_table.columns = ["Recall", "Precision", "F-score"]
 
 ## Pseudoknots table 16S 23S
 df_pktable = pd.read_csv(rf"resources/results/16S23S_pk.csv")
@@ -208,13 +226,13 @@ df_pktable = pd.read_csv(rf"resources/results/16S23S_pk.csv")
 df_pktable = format_pk_table(df_pktable)
 table_16S = (
     df_pktable[df_pktable.rna_name == "CRW_16S_B_Ac_75"]
-    .sort_values("fscore", ascending=False)[["model", "fscore", "time"]]
+    .sort_values("fscore", ascending=False)[["model", "sen", "ppv", "fscore", "time"]]
     .set_index("model", drop=True)
     .apply(lambda x: round(x, 3))
 )
 table_23S = (
     df_pktable[df_pktable.rna_name == "CRW_23S_B_F_46"]
-    .sort_values("fscore", ascending=False)[["model", "fscore", "time"]]
+    .sort_values("fscore", ascending=False)[["model", "sen", "ppv", "fscore", "time"]]
     .set_index("model", drop=True)
     .apply(lambda x: round(x, 3))
 )
@@ -229,15 +247,17 @@ data = pd.concat(
     [
         data_scores[data_scores.model == x]
         for x in [
+            "IPknot",
             "ProbKnot",
             "KnotFold",
-            "IPknot",
             "pKiss",
+            "UFold",
         ]
     ]
 )
 assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
 
+data.loc[(data.model == "UFold") & (data.length == 600), "length"] = 599
 fig, axs = plt.subplots(2, sharex=True, figsize=(7, 6))
 plot(data, "fscore", bins=[400, 600, 800, 1000], ax_to_plot=axs[0], legend=False)
 axs[0].set_ylim(bottom=0.0, top=1.0)
@@ -272,7 +292,7 @@ data = pd.concat(
     ]
 )
 data["Maximum fragment length"] = data.model.apply(
-    lambda x: x.split("(")[1].split(")")[0] + " nc."
+    lambda x: x.split("(")[1].split(")")[0] + " nt"
 )
 assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
 
@@ -290,7 +310,8 @@ data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 data = format_pk_table(data_scores)
 assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
 
-fig, axs = plt.subplots(2, sharex=True, figsize=(20, 6))
+data = data[~data.model.isin(["pKiss", "UFold"])]
+fig, axs = plt.subplots(2, sharex=True, figsize=(20, 10))
 plot(
     data,
     "pk_motif_sen",
@@ -320,10 +341,9 @@ data = pd.concat(
         data_scores[data_scores.model == x]
         for x in [
             "DivideFold CNN (1000) + KnotFold",
+            "IPknot",
             "ProbKnot",
             "KnotFold",
-            "IPknot",
-            "pKiss",
         ]
     ]
 )
@@ -339,5 +359,5 @@ plot(
     bins=[1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000],
     log_scale=True,
 )
-plt.ylim([10, 10000])
+plt.ylim([3, 10000])
 plt.show()

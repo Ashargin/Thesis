@@ -8,6 +8,7 @@ resources/clusters*
 resources/data_splits
 resources/data_structures/*/
 resources/models/old
+resources/paper_resources/plos
 Rfam_data
 rnapar_raw_data
 shaker_data
