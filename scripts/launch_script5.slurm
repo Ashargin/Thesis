@@ -13,6 +13,6 @@
 module purge
 
 # Chargement des modules
-module load pytorch-gpu/py3/1.6.0
+module load pytorch-gpu/py3/2.5.0
 
 python -u scripts/run_preds5.py
