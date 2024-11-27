@@ -499,7 +499,7 @@ def dividefold_get_cuts(
 ):
     seq_mat = format_data(seq, max_motifs=max_motifs)[np.newaxis, :, :]
 
-    cuts = cut_model(seq_mat).numpy().ravel()
+    cuts = cut_model(seq_mat).detach().cpu().numpy().ravel()
     min_height = min(min_height, max(cuts))
 
     def get_peaks(min_height):
