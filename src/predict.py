@@ -11,9 +11,7 @@ import itertools
 import signal
 
 import torch
-from tensorflow import keras
-
-# import keras
+import keras
 
 from src.utils import (
     format_data,

@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.getcwd())
 
 from pathlib import Path
-from tensorflow import keras
+import keras
 
 from src.predict import (
     dividefold_predict,

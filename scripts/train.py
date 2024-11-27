@@ -2,7 +2,7 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
-from tensorflow import keras
+import keras
 
 # import torch
 # from transformers import AutoTokenizer, AutoModel
