@@ -231,7 +231,7 @@ def seq2kmer(seq, k):
 
 
 def apply_mutation(seq, struct, mutation_proba=1.0, struct_deletion_proba=0.0):
-    struct_no_pk = re.sub("[^\(\)\.]", ".", struct)
+    struct_no_pk = re.sub(r"[^\(\)\.]", ".", struct)
     pairs = struct_to_pairs(struct_no_pk)
 
     # Sequence mutation
@@ -387,7 +387,7 @@ def run_preds(
                 skip_counter += compute_frac - 1
         if evaluate_cutting_model:
             frags = [p[0] for p in pred]
-            struct_no_pseudoknots = re.sub("[^\(\)\.]", ".", struct)
+            struct_no_pseudoknots = re.sub(r"[^\(\)\.]", ".", struct)
             pairs = struct_to_pairs(struct_no_pseudoknots)
             frag_attrib = np.zeros(len(seq), dtype=int)
             for i, f in enumerate(frags):
