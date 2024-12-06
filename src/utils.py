@@ -5,6 +5,7 @@ import re
 import matplotlib.pyplot as plt
 from pathlib import Path
 import datetime
+import warnings
 
 from src.cogent.struct.knots import inc_length as cogent_remove_pseudoknots
 
@@ -48,17 +49,29 @@ def struct_to_pairs(struct):
             opened[bracket_type].append(i + 1)
         elif char in close_brackets:
             bracket_type = close_brackets.index(char)
-            last_opened = opened[bracket_type].pop()
+            try:
+                last_opened = opened[bracket_type].pop()
+            except IndexError:
+                raise ValueError(
+                    "Malformed structure was given (closing bracket appears before corresponding opening bracket)."
+                )
             pairs[last_opened] = i + 1
             pairs[i + 1] = last_opened
         elif char == "?":
             assert all([c == "?" for c in struct])
             return np.array([0 for i in range(len(struct))])
         else:
-            raise Warning("Unknown bracket !")
+            raise ValueError(
+                "Malformed structure was given (unknown bracket character)."
+            )
 
-    pairs = np.array([pairs[i + 1] for i in range(len(struct))])
-    return pairs
+    try:
+        pairs = np.array([pairs[i + 1] for i in range(len(struct))])
+        return pairs
+    except KeyError:
+        raise ValueError(
+            "Malformed structure was given (opening bracket has no corresponding closing bracket)."
+        )
 
 
 def pairs_to_struct(pairs):
@@ -107,9 +120,12 @@ def _sub_pairs_to_struct(pairs, start_bracket=0):
 
     for i, j in enumerate(pairs):
         i += 1
-        if (j == 0) or (i > j):
+        if (j == 0) or (i >= j):
             continue
-        if pairs[pairs[i - 1] - 1] != i:  # malformed pairs
+        if pairs[j - 1] != i:  # malformed pairs
+            warnings.warn(
+                "Some malformed pairs were given (non-symmetrical pairs) and will be ignored when converting to dot-bracket format."
+            )
             continue
 
         bracket_type = 0
@@ -152,8 +168,14 @@ def remove_pseudoknots(struct_or_pairs, return_pseudoknots=False):
     cogent_pairs = []
     for i, j in enumerate(pairs):
         i += 1
-        if (j > 0) and (i < j) and (pairs[j - 1] == i):
-            cogent_pairs.append((i, j))
+        if (j == 0) or (i >= j):
+            continue
+        if pairs[j - 1] != i:  # malformed pairs
+            warnings.warn(
+                "Some malformed pairs were given (non-symmetrical pairs) and will be ignored when converting to dot-bracket format."
+            )
+            continue
+        cogent_pairs.append((i, j))
 
     # Call the pseudoknot removal function
     cogent_pseudofree_pairs, cogent_pseudoknot_pairs = cogent_remove_pseudoknots(
