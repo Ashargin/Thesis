@@ -9,7 +9,7 @@ import keras
 import scipy.signal
 from pathlib import Path
 
-from src.utils import format_data, apply_mutation
+from src.utils import format_data, apply_mutation, evoaug_augment
 from src.models.mlp import MLP
 from src.models.cnn_1d import CNN1D
 from src.models.bilstm import BiLSTM
@@ -20,8 +20,9 @@ from src.predict import oracle_get_cuts
 MAX_MOTIFS = 200
 MAX_DIL = 256
 DATA_AUGMENT_MUTATION = True
-MIN_LEN = 400
-AUGMENT_STRUCTS = True
+MIN_LEN = 1600
+AUGMENT_STRUCTS = False
+AUGMENT_TYPE = "EVOAUG"
 
 # Load model
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
@@ -90,13 +91,17 @@ def motif_data_generator(
             seq, struct, cuts = row.seq, row.struct, row.cuts
 
             if data_augment_mutation:
-                new_seq, new_struct = apply_mutation(
-                    seq,
-                    struct,
-                    mutation_proba=0.1 * np.random.random(),
-                    struct_deletion_proba=0.1 * np.random.random()
-                    if AUGMENT_STRUCTS
-                    else 0.0,
+                new_seq, new_struct = (
+                    apply_mutation(
+                        seq,
+                        struct,
+                        mutation_proba=0.1 * np.random.random(),
+                        struct_deletion_proba=0.1 * np.random.random()
+                        if AUGMENT_STRUCTS
+                        else 0.0,
+                    )
+                    if AUGMENT_TYPE != "EVOAUG"
+                    else evoaug_augment(seq, struct)
                 )
                 seq = new_seq
                 if new_struct != struct:
@@ -184,20 +189,17 @@ while True:
     history = model.fit(
         train_gen,
         validation_data=val_gen,
-        steps_per_epoch=3780,  # 37796 / 9138
+        steps_per_epoch=3780,  # 37796|27768301 / 9138|13545894 / 332|782530
+        # 10-50 (1-5)    / 5-25 (2-10)   / 3-15 (35-175)
         epochs=1,
-        validation_steps=330,  # 3334 / 761
+        validation_steps=333,  # 3334 / 761 / 70
     )
     histories.append(history.history)
     this_loss = round(100000 * np.mean(history.history["val_loss"]), 2)
 
     must_save = (not losses) or (this_loss < min(losses))
     if must_save:
-        model.save(
-            Path(
-                f"resources/models/CNN1D_{MIN_LEN}{'STRUCTAUG' if AUGMENT_STRUCTS else ''}.keras"
-            )
-        )
+        model.save(Path(f"resources/models/CNN1D_{MIN_LEN}{AUGMENT_TYPE}.keras"))
     losses.append(this_loss)
     print(f"Epoch {i+1}:")
     print(losses)

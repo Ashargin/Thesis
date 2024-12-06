@@ -6,7 +6,7 @@ import pandas as pd
 import itertools
 from pathlib import Path
 
-from src.utils import optimize_pseudoknots
+from src.utils import optimize_pseudoknots, struct_to_pairs, pairs_to_struct
 
 
 def oracle_get_cuts(struct):
@@ -173,7 +173,16 @@ def dividefold_get_fragment_ranges_preds(
             for i, j in zip(cut_indices[:-1], cut_indices[1:])
         ]
         if struct:
-            substruct = struct[left_b:right_b]
+            pairs = struct_to_pairs(struct)
+            for i in range(left_b, right_b):
+                j = pairs[i] - 1
+                if j >= 0:
+                    if (j < left_b) or (j >= right_b):
+                        pairs[i] = 0
+                    else:
+                        pairs[i] -= left_b
+            pairs = pairs[left_b:right_b]
+            substruct = pairs_to_struct(pairs)
             assert substruct.count("(") == substruct.count(")")
         this_frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
@@ -216,9 +225,33 @@ def dividefold_get_fragment_ranges_preds(
             for i, j in zip(cut_indices[:-1], cut_indices[1:])
         ]
         if struct:
-            left_substruct = struct[left_b_1:right_b_1]
-            right_substruct = struct[left_b_2:right_b_2]
-            substruct = left_substruct + right_substruct
+            pairs = struct_to_pairs(struct)
+            for i in range(left_b_1, right_b_1):
+                j = pairs[i] - 1
+                if j >= 0:
+                    if ((j < left_b_1) or (j >= right_b_1)) and (
+                        (j < left_b_2) or (j >= right_b_2)
+                    ):
+                        pairs[i] = 0
+                    elif (j >= left_b_1) and (j < right_b_1):
+                        pairs[i] -= left_b_1
+                    else:
+                        pairs[i] += right_b_1 - left_b_1 - left_b_2
+            for i in range(left_b_2, right_b_2):
+                j = pairs[i] - 1
+                if j >= 0:
+                    if ((j < left_b_1) or (j >= right_b_1)) and (
+                        (j < left_b_2) or (j >= right_b_2)
+                    ):
+                        pairs[i] = 0
+                    elif (j >= left_b_1) and (j < right_b_1):
+                        pairs[i] -= left_b_1
+                    else:
+                        pairs[i] += right_b_1 - left_b_1 - left_b_2
+            pairs = np.concatenate(
+                [pairs[left_b_1:right_b_1], pairs[left_b_2:right_b_2]]
+            ).astype(int)
+            substruct = pairs_to_struct(pairs)
             assert substruct.count("(") == substruct.count(")")
         this_frag_preds, _, memory = dividefold_get_fragment_ranges_preds(
             subseq,
@@ -355,9 +388,9 @@ for f in os.listdir(path_structures):
     split_df.to_csv(path_splits / f.replace(".dbn", ".csv"))
     split_dfs.append(split_df)
 
-for _, row in splits_df.iterrows():
-    ref_seq = main_df[main_df.rna_name == row.rna_name].iloc[0].seq
-    spans = [x.split("(")[-1] for x in row.span.split(")")[:-1]]
-    spans = [tuple(int(x) for x in sp.split(" ")) for sp in spans]
-    rebuilt = "".join([ref_seq[x - 1 : y] for x, y in spans])
-    assert rebuilt == row.seq
+# for _, row in splits_df.iterrows():
+#     ref_seq = main_df[main_df.rna_name == row.rna_name].iloc[0].seq
+#     spans = [x.split("(")[-1] for x in row.span.split(")")[:-1]]
+#     spans = [tuple(int(x) for x in sp.split(" ")) for sp in spans]
+#     rebuilt = "".join([ref_seq[x - 1 : y] for x, y in spans])
+#     assert rebuilt == row.seq

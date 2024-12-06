@@ -11,6 +11,10 @@ from src.utils import get_scores_df
 
 ## Score predictions
 # module load viennarna/2.5.0
+# module load pytorch-gpu/py3/2.5.0
+# module load git git-lfs
+# python sampling.py --out_path output.seq --max_new_tokens 1024 --ckpt_path model_updated.pt --tokenizer_path tokenizer
+
 # folder = "sequencewise"
 # results_path = Path("resources/results/predictions") / folder
 # files = os.listdir(results_path)
