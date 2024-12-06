@@ -20,7 +20,7 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "CNN1D_RETRAINED"
+model_filename = "CNN1D_1000EVOAUG"
 predict_fnc = None
 evaluate_cutting_model = True
 max_length = 1000

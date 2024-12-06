@@ -20,7 +20,7 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "CNN1D"
+model_filename = "CNN1D_EVOAUG"
 predict_fnc = knotfold_predict
 evaluate_cutting_model = False
 max_length = 1000
@@ -71,7 +71,7 @@ kwargs = (
 )
 
 # Run cutting metrics
-for dataset in ["16S23S", "curated_lncRNAs", "test_familywise", "test_sequencewise"]:
+for dataset in ["16S23S", "curated_lncRNAs", "test_familywise"]:
     dataset_name = dataset.replace("test_", "").replace("_lncRNAs", "")
     run_preds(
         global_predict_fnc,
