@@ -28,7 +28,7 @@ AUGMENT_TYPE = "EVOAUG"
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
 # model = MLP(input_shape=(None, MAX_MOTIFS + 4))
 # model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
-pretrained_model = keras.models.load_model(r"resources/models/CNN1D.keras")
+pretrained_model = keras.models.load_model(r"resources/models/CNN1D_1600EVOAUG.keras")
 model.set_weights(pretrained_model.weights)
 model.compile(
     optimizer="adam",
