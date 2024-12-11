@@ -7,6 +7,7 @@ from pathlib import Path
 import datetime
 import warnings
 
+from src.cogent.struct.rna2d import Pairs as CogentPairs
 from src.cogent.struct.knots import inc_length as cogent_remove_pseudoknots
 
 # import fm
@@ -176,6 +177,7 @@ def remove_pseudoknots(struct_or_pairs, return_pseudoknots=False):
             )
             continue
         cogent_pairs.append((i, j))
+    cogent_pairs = CogentPairs(cogent_pairs)
 
     # Call the pseudoknot removal function
     cogent_pseudofree_pairs, cogent_pseudoknot_pairs = cogent_remove_pseudoknots(

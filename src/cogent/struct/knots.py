@@ -361,7 +361,7 @@ class PairedRegions(list):
             PairedRegion in the list.
         """
         if self:
-            return sum(map(len, self))
+            return sum([len(p) for p in self])
         else:
             return 0
 
@@ -854,7 +854,7 @@ def pick_multi_best(candidates, goal="max"):
     seen = {}
     # Candidates have to be processed in order of length
     can_len = [(c.totalLength(), c) for c in candidates]
-    can_len.sort()
+    can_len.sort(key=lambda x: x[0])
     can_len.reverse()
     for l, c in can_len:
         c_ids = tuple(c.sortedIds())
@@ -1080,7 +1080,9 @@ def opt_all(pairs, return_removed=False, goal="max", scoring_function=num_bps):
         approach.
     """
     if not pairs.hasPseudoknots():
-        return [pairs]
+        if return_removed:
+            return pairs, []
+        return pairs
 
     prs = PairedRegionsFromPairs(pairs)
     id_to_bl = prs.byId()
@@ -1114,10 +1116,10 @@ def opt_all(pairs, return_removed=False, goal="max", scoring_function=num_bps):
             rem.sort()
             removed.append(rem)
         nested = [prs.toPairs() for prs in result]
-        return zip(nested, removed)
+        return nested[0], removed[0]  # return zip(nested, removed)
 
     nested = [prs.toPairs() for prs in result]
-    return nested
+    return nested[0]  # return nested
 
 
 # =============================================================================
@@ -1569,8 +1571,7 @@ def inc_range(pairs, reversed=False, return_removed=False):
         if reversed:
             v.reverse()
 
-    ranges = range_pos_data.keys()
-    ranges.sort()
+    ranges = sorted(range_pos_data)
 
     result = PairedRegions()
     excluded = {}
