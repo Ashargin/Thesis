@@ -22,9 +22,7 @@ from src.utils import (
 )
 
 # Settings
-DEFAULT_CUT_MODEL = (
-    Path(__file__).parents[1] / "resources/models/CNN1D_1600EVOAUG.keras"
-)
+DEFAULT_CUT_MODEL = Path(__file__).parents[1] / "resources/models/CNN1D_INCRANGE.keras"
 
 # Load cut model
 default_cut_model = keras.models.load_model(DEFAULT_CUT_MODEL)
