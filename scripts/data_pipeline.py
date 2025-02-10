@@ -150,7 +150,11 @@ test_df = test_df[~test_df.rna_name.isin(validation_df.rna_name.unique())]
 
 ## Get family-wise dataset from RFAM
 def get_rfam_df(version):
-    txt = open(Path(f"Rfam_data/Rfam_{version}.seed"), "r").read().strip()
+    txt = (
+        open(Path(f"Rfam_data/Rfam_{version}.seed"), "r", encoding="latin-1")
+        .read()
+        .strip()
+    )
     family_names = []
     names = []
     seqs = []
@@ -216,15 +220,19 @@ def get_rfam_df(version):
 
 
 rfam_122_df = get_rfam_df("12.2")
-rfam_1410_df = get_rfam_df("14.10")
+# rfam_142_df = get_rfam_df("14.2")
+# rfam_1410_df = get_rfam_df("14.10")
+rfam_150_df = get_rfam_df("15.0")
 rfam_test_df = (
-    rfam_1410_df[~rfam_1410_df.family_name.isin(rfam_122_df.family_name.unique())]
+    rfam_150_df[~rfam_150_df.family_name.isin(rfam_122_df.family_name.unique())]
     .drop("family_name", axis=1)
     .reset_index(drop=True)
 )
 
 ## Read RFAM clusters and deduplicate
-clusters_lines = open(path_resources / "clusters_rfam.clstr").read().strip().split("\n")
+clusters_lines = (
+    open(path_resources / "clusters_rfam_15.0.clstr").read().strip().split("\n")
+)
 rfam_clusters = []
 for l in clusters_lines:
     if l.startswith(">"):
@@ -237,26 +245,23 @@ assert set(head_names).issubset(set(rfam_test_df.rna_name))
 rfam_test_df = rfam_test_df[rfam_test_df.rna_name.isin(head_names)]
 assert rfam_test_df.seq.nunique() == rfam_test_df.shape[0]
 
-## Split val / test
-rfam_validation_df = rfam_test_df.sample(frac=0.2, random_state=0).sort_index()
-rfam_test_df = rfam_test_df[
-    ~rfam_test_df.rna_name.isin(rfam_validation_df.rna_name.unique())
-]
-
 ## Read splits. Write structures and splits
 splits_df = pd.read_csv(path_splits / "all_splits.csv")
 
 
 ## CD-HIT clusters for RFAM and finish family-wise
-def write_files_dbn_csv_bpseq(filename, src_df, max_bpseq_length=500):
+def write_files_dbn_csv_bpseq(
+    filename, src_df, write_splits=True, max_bpseq_length=500
+):
     # Write structures dbn
     with open(path_structures / f"{filename}.dbn", "w") as f:
         for _, row in src_df.iterrows():
             f.write(f"#Name: {row.rna_name}\n{row.seq}\n{row.struct}\n")
 
     # Write splits csv
-    src_splits_df = splits_df[splits_df.rna_name.isin(src_df.rna_name.unique())]
-    src_splits_df.to_csv(path_splits / f"{filename}.csv")
+    if write_splits:
+        src_splits_df = splits_df[splits_df.rna_name.isin(src_df.rna_name.unique())]
+        src_splits_df.reset_index(drop=True).to_csv(path_splits / f"{filename}.csv")
 
     # Write structures bpseq for mxfold2 training data
     # bpseq_path = path_bprna / "bpseqFiles"
@@ -276,7 +281,6 @@ def write_files_dbn_csv_bpseq(filename, src_df, max_bpseq_length=500):
 
 
 write_files_dbn_csv_bpseq("train", train_df)
-write_files_dbn_csv_bpseq("validation_sequencewise", validation_df)
+write_files_dbn_csv_bpseq("validation", validation_df)
 write_files_dbn_csv_bpseq("test_sequencewise", test_df)
-write_files_dbn_csv_bpseq("validation_familywise", rfam_validation_df)
-write_files_dbn_csv_bpseq("test_familywise", rfam_test_df)
+write_files_dbn_csv_bpseq("test_familywise15", rfam_test_df, write_splits=False)

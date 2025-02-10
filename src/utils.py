@@ -651,6 +651,9 @@ def get_scores_df(path_in):
         .replace("_rnaf_", "_")
         .replace("_lf_", "_")
         .replace("_kf_", "_")
+        .replace("_ipk_", "_")
+        .replace("_pbk_", "_")
+        .replace("_pks_", "_")
         .replace(".csv", "_cuttingmetrics.csv")
     )
     cutting_metric_path = (

@@ -57,7 +57,7 @@ data_scores = pd.concat(scores).reset_index(drop=True)
 assert data_scores.groupby("rna_name").struct.nunique().max() == 1
 
 # Compute mean performance
-metrics = ["fscore", "pk_motif_fscore", "pk_motif_sen"]
+metrics = ["fscore", "pk_motif_fscore", "pk_motif_sen", "pk_motif_ppv"]
 len_ranges = ["1000-4500", "1000-1600", "1600-4500"]
 models = data_scores.model.unique()
 ref_model = "DivideFold CNN (1000) + KnotFold"

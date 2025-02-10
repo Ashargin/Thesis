@@ -15,8 +15,8 @@ from src.utils import get_scores_df
 # module load git git-lfs
 # python sampling.py --out_path output.seq --max_new_tokens 1024 --ckpt_path model_updated.pt --tokenizer_path tokenizer
 
-# folder = "sequencewise"
-# results_path = Path("resources/results/predictions") / folder
+# folder = "familywise"
+# results_path = Path("resources/results/predictions/") / folder
 # files = os.listdir(results_path)
 #
 #
@@ -38,6 +38,9 @@ from src.utils import get_scores_df
 #         "lf": "LinearFold",
 #         "rnaf": "RNAfold",
 #         "kf": "KnotFold",
+#         "ipk": "IPknot",
+#         "pbk": "ProbKnot",
+#         "pks": "pKiss",
 #         "ipknot": "IPknot",
 #         "pkiss": "pKiss",
 #         "probknot": "ProbKnot",
@@ -68,8 +71,8 @@ from src.utils import get_scores_df
 # data_scores = pd.concat(scores).reset_index(drop=True)
 # assert data_scores.groupby("rna_name").struct.nunique().max() == 1
 # data_scores.to_csv(rf"resources/results/{folder}.csv", index=False)
-# data_scores[data_scores.pk_motif_tp + data_scores.pk_motif_fn > 0].to_csv(rf"resources/results/{folder}_pk.csv", index=False)
-# data_scores[data_scores.pk_motif_tp + data_scores.pk_motif_fn == 0].to_csv(rf"resources/results/{folder}_nopk.csv", index=False)
+# data_scores[(data_scores.pk_motif_tp + data_scores.pk_motif_fn) > 0].to_csv(rf"resources/results/{folder}_pk.csv", index=False)
+# data_scores[(data_scores.pk_motif_tp + data_scores.pk_motif_fn) == 0].to_csv(rf"resources/results/{folder}_nopk.csv", index=False)
 
 
 def plot(
@@ -106,8 +109,11 @@ def plot(
         "KnotFold": ref_palette["tab:red"],
         "pKiss": ref_palette["tab:purple"],
         "UFold": ref_palette["tab:brown"],
+        "100 nt": ref_palette["tab:gray"],
         "200 nt": ref_palette["tab:blue"],
+        "300 nt": ref_palette["tab:pink"],
         "400 nt": ref_palette["tab:orange"],
+        "500 nt": ref_palette["tab:cyan"],
         "600 nt": ref_palette["tab:green"],
         "800 nt": ref_palette["tab:red"],
         "1000 nt": ref_palette["tab:purple"],
@@ -145,22 +151,23 @@ def plot(
 
 
 ## Pseudoknots table
-def format_pk_table(df):
+def format_pk_table(df, min_len=1000):
     df = df.copy()
     df = df[
         (~df.model.apply(lambda x: "DivideFold" in x))
-        | ((df.cut_compression > 0) & (df.length >= 1000))
+        | ((df.cut_compression > 0) & (df.length >= min_len))
     ]
     df = df[~df.model.str.contains("Oracle")]
     subdfs = []
-    for model_groups in [
+    all_model_groups = [
         ("DivideFold", "KnotFold"),
         ("IPknot",),
         ("ProbKnot",),
         ("KnotFold",),
         ("pKiss",),
         ("UFold",),
-    ]:
+    ]
+    for model_groups in all_model_groups:
         conds = [df.model.str.contains(x) for x in model_groups]
         if len(conds) == 1:
             conds.append(~df.model.str.contains("DivideFold"))
@@ -180,6 +187,7 @@ def format_pk_table(df):
     return df
 
 
+# Sequence-wise
 df_pktable = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 df_pktable = format_pk_table(df_pktable)
 df_pktable = df_pktable[df_pktable.length >= 1000]  # RNAs longer than 1000 nt
@@ -191,13 +199,38 @@ pk_table = (
 )
 pk_table.columns = ["Recall", "Precision", "F-score"]
 
+# Family-wise
+df_pktable = pd.read_csv(rf"resources/results/familywise_pk.csv")
+df_pktable = format_pk_table(df_pktable, min_len=500)
+df_pktable = df_pktable[df_pktable.length >= 500]  # RNAs longer than 500 nt
+pk_table = (
+    df_pktable.groupby("model")[["pk_motif_sen", "pk_motif_ppv", "pk_motif_fscore"]]
+    .mean()
+    .sort_values("pk_motif_sen", ascending=False)
+    .apply(lambda x: round(x, 3))
+)
+pk_table.columns = ["Recall", "Precision", "F-score"]
+
 ## Secondary structure table
+# Sequence-wise
 df_fscoretable = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 df_fscoretable = format_pk_table(df_fscoretable)
 df_fscoretable = df_fscoretable[~df_fscoretable.model.isin(["pKiss"])]
 df_fscoretable = df_fscoretable[
     df_fscoretable.length >= 1000
 ]  # RNAs longer than 1000 nt
+fscore_table = (
+    df_fscoretable.groupby("model")[["sen", "ppv", "fscore"]]
+    .mean()
+    .sort_values("fscore", ascending=False)
+    .apply(lambda x: round(x, 3))
+)
+fscore_table.columns = ["Recall", "Precision", "F-score"]
+
+# Family-wise
+df_fscoretable = pd.read_csv(rf"resources/results/familywise_pk.csv")
+df_fscoretable = format_pk_table(df_fscoretable, min_len=500)
+df_fscoretable = df_fscoretable[df_fscoretable.length >= 500]  # RNAs longer than 500 nt
 fscore_table = (
     df_fscoretable.groupby("model")[["sen", "ppv", "fscore"]]
     .mean()
@@ -241,7 +274,7 @@ table_23S = (
     .apply(lambda x: round(x, 3))
 )
 
-## Structure prediction models
+## Structure prediction models sequence-wise
 data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 data_scores = data_scores[
     (~data_scores.model.apply(lambda x: "DivideFold" in x))
@@ -276,7 +309,42 @@ plot(
 axs[1].set_ylim(bottom=1, top=2000)
 plt.show()
 
-## Hyperparameter evaluation
+## Structure prediction models family-wise
+data_scores = pd.read_csv(rf"resources/results/familywise_pk.csv")
+data_scores = data_scores[
+    (~data_scores.model.apply(lambda x: "DivideFold" in x))
+    | (data_scores.cut_compression > 0)
+]
+data = pd.concat(
+    [
+        data_scores[data_scores.model == x]
+        for x in [
+            "IPknot",
+            "ProbKnot",
+            "KnotFold",
+            "pKiss",
+            "UFold",
+        ]
+    ]
+)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+data.loc[(data.model == "UFold") & (data.length == 600), "length"] = 599
+fig, axs = plt.subplots(2, sharex=True, figsize=(7, 6))
+plot(data, "fscore", bins=[400, 600, 800, 1000], ax_to_plot=axs[0], legend=False)
+axs[0].set_ylim(bottom=0.0, top=1.0)
+plot(
+    data,
+    "time",
+    bins=[400, 600, 800, 1000],
+    ax_to_plot=axs[1],
+    log_scale=True,
+    legend=False,
+)
+axs[1].set_ylim(bottom=1, top=2000)
+plt.show()
+
+## Hyperparameter evaluation sequence-wise
 data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 data_scores = data_scores[
     (~data_scores.model.apply(lambda x: "DivideFold" in x))
@@ -286,12 +354,12 @@ data = pd.concat(
     [
         data_scores[data_scores.model == x]
         for x in [
-            "DivideFold CNN (200) + KnotFold",
-            "DivideFold CNN (400) + KnotFold",
-            "DivideFold CNN (600) + KnotFold",
-            "DivideFold CNN (800) + KnotFold",
-            "DivideFold CNN (1000) + KnotFold",
-            "DivideFold CNN (1200) + KnotFold",
+            "DivideFold CNN400 (200) + KnotFold",
+            "DivideFold CNN400 (400) + KnotFold",
+            "DivideFold CNN400 (600) + KnotFold",
+            "DivideFold CNN400 (800) + KnotFold",
+            "DivideFold CNN400 (1000) + KnotFold",
+            "DivideFold CNN400 (1200) + KnotFold",
         ]
     ]
 )
@@ -309,7 +377,39 @@ plot(
 plt.ylim(bottom=0.1, top=0.9)
 plt.show()
 
-## Pseudoknot graph
+## Hyperparameter evaluation family-wise
+data_scores = pd.read_csv(rf"resources/results/familywise_pk.csv")
+data_scores = data_scores[
+    (~data_scores.model.apply(lambda x: "DivideFold" in x))
+    | (data_scores.cut_compression > 0)
+]
+data = pd.concat(
+    [
+        data_scores[data_scores.model == x]
+        for x in [
+            "DivideFold CNN400 (100) + IPknot",
+            "DivideFold CNN400 (200) + IPknot",
+            "DivideFold CNN400 (300) + IPknot",
+            "DivideFold CNN400 (400) + IPknot",
+            "DivideFold CNN400 (500) + IPknot",
+        ]
+    ]
+)
+data["Maximum fragment length"] = data.model.apply(
+    lambda x: x.split("(")[1].split(")")[0] + " nt"
+)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+plot(
+    data,
+    "fscore",
+    hue="Maximum fragment length",
+    bins=[500, 600, 700, 800, 900, 1000],
+)
+plt.ylim(bottom=0.1, top=0.9)
+plt.show()
+
+## Pseudoknot graph sequence-wise
 data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 data = format_pk_table(data_scores)
 assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
@@ -334,7 +434,7 @@ plot(
 axs[1].set_ylim(bottom=0.0, top=0.15)
 plt.show()
 
-## Secondary structure graph with pk
+## Secondary structure graph with pk sequence-wise
 data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
 data_scores = data_scores[
     (~data_scores.model.apply(lambda x: "DivideFold" in x))
@@ -344,7 +444,7 @@ data = pd.concat(
     [
         data_scores[data_scores.model == x]
         for x in [
-            "DivideFold CNN (1000) + KnotFold",
+            "DivideFold CNN1600EVOAUGINCRANGE (1000) + KnotFold",
             "IPknot",
             "ProbKnot",
             "KnotFold",
@@ -353,7 +453,7 @@ data = pd.concat(
 )
 assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
 
-data.model = data.model.apply(lambda x: x.replace(" (1000)", "").replace(" CNN", ""))
+data.model = data.model.apply(lambda x: x.replace("CNN1600EVOAUGINCRANGE (1000) ", ""))
 
 plot(data, "fscore", bins=[1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000])
 plt.ylim([0, 1])
@@ -361,6 +461,128 @@ plot(
     data,
     "time",
     bins=[1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000],
+    log_scale=True,
+)
+plt.ylim([3, 10000])
+plt.show()
+
+## Pseudoknot graph family-wise
+data_scores = pd.read_csv(rf"resources/results/familywise_pk.csv")
+data_scores.loc[
+    (data_scores.model == "UFold") & (data_scores.length == 600), "length"
+] = 599
+data = format_pk_table(data_scores, min_len=500)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+fig, axs = plt.subplots(2, sharex=True, figsize=(20, 10))
+plot(
+    data,
+    "pk_motif_sen",
+    bins=[500, 600, 700, 800, 900, 1000],
+    how="barplot",
+    ax_to_plot=axs[0],
+)
+axs[0].set_ylim(bottom=0.0, top=1.0)
+plot(
+    data,
+    "pk_motif_fscore",
+    bins=[500, 600, 700, 800, 900, 1000],
+    how="barplot",
+    ax_to_plot=axs[1],
+)
+axs[1].set_ylim(bottom=0.0, top=0.15)
+plt.show()
+
+## Secondary structure graph with pk family-wise
+data_scores = pd.read_csv(rf"resources/results/familywise_pk.csv")
+data_scores = data_scores[
+    (~data_scores.model.apply(lambda x: "DivideFold" in x))
+    | (data_scores.cut_compression > 0)
+]
+data = pd.concat(
+    [
+        data_scores[data_scores.model == x]
+        for x in [
+            "DivideFold CNN1600EVOAUGINCRANGE (500) + KnotFold",
+            "IPknot",
+            "ProbKnot",
+            "KnotFold",
+            "pKiss",
+            "UFold",
+        ]
+    ]
+)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+data.model = data.model.apply(lambda x: x.replace("CNN1600EVOAUGINCRANGE (500) ", ""))
+data.loc[(data.model == "UFold") & (data.length == 600), "length"] = 599
+
+plot(data, "fscore", bins=[500, 600, 700, 800, 900, 1000])
+plt.ylim([0, 1])
+plot(
+    data,
+    "time",
+    bins=[500, 600, 700, 800, 900, 1000],
+    log_scale=True,
+)
+plt.ylim([3, 10000])
+plt.show()
+
+## Pseudoknot graph with pk sequence-wise on 500-1000 nt
+data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+data = format_pk_table(data_scores, min_len=500)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+data.loc[(data.model == "UFold") & (data.length == 600), "length"] = 599
+fig, axs = plt.subplots(2, sharex=True, figsize=(20, 10))
+plot(
+    data,
+    "pk_motif_sen",
+    bins=[500, 600, 700, 800, 900, 1000],
+    how="barplot",
+    ax_to_plot=axs[0],
+)
+axs[0].set_ylim(bottom=0.0, top=1.0)
+plot(
+    data,
+    "pk_motif_fscore",
+    bins=[500, 600, 700, 800, 900, 1000],
+    how="barplot",
+    ax_to_plot=axs[1],
+)
+axs[1].set_ylim(bottom=0.0, top=0.2)
+plt.show()
+
+## Secondary structure graph with pk sequence-wise on 500-1000 nt
+data_scores = pd.read_csv(rf"resources/results/sequencewise_pk.csv")
+data_scores = data_scores[
+    (~data_scores.model.apply(lambda x: "DivideFold" in x))
+    | (data_scores.cut_compression > 0)
+]
+data = pd.concat(
+    [
+        data_scores[data_scores.model == x]
+        for x in [
+            "DivideFold CNN400 (400) + KnotFold",
+            "IPknot",
+            "ProbKnot",
+            "KnotFold",
+            "pKiss",
+            "UFold",
+        ]
+    ]
+)
+assert np.all(data.groupby("rna_name").model.nunique() == data.model.nunique())
+
+data.model = data.model.apply(lambda x: x.replace("CNN400 (400) ", ""))
+data.loc[(data.model == "UFold") & (data.length == 600), "length"] = 599
+
+plot(data, "fscore", bins=[500, 600, 700, 800, 900, 1000], legend=True)
+plt.ylim([0, 1])
+plot(
+    data,
+    "time",
+    bins=[500, 600, 700, 800, 900, 1000],
     log_scale=True,
 )
 plt.ylim([3, 10000])

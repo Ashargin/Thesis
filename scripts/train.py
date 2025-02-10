@@ -9,7 +9,7 @@ import keras
 import scipy.signal
 from pathlib import Path
 
-from src.utils import format_data, apply_mutation, evoaug_augment
+from src.utils import format_data, optimize_pseudoknots, apply_mutation, evoaug_augment
 from src.models.mlp import MLP
 from src.models.cnn_1d import CNN1D
 from src.models.bilstm import BiLSTM
@@ -28,7 +28,7 @@ AUGMENT_TYPE = "EVOAUG"
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
 # model = MLP(input_shape=(None, MAX_MOTIFS + 4))
 # model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
-pretrained_model = keras.models.load_model(r"resources/models/CNN1D_1600EVOAUG.keras")
+pretrained_model = keras.models.load_model(r"resources/models/CNN1D_400.keras")
 model.set_weights(pretrained_model.weights)
 model.compile(
     optimizer="adam",
@@ -89,25 +89,25 @@ def motif_data_generator(
         else:
             row = df_in.iloc[i % df_in.shape[0]]
             seq, struct, cuts = row.seq, row.struct, row.cuts
+            new_struct = optimize_pseudoknots(struct)
 
             if data_augment_mutation:
-                new_seq, new_struct = (
+                seq, new_struct = (
                     apply_mutation(
                         seq,
-                        struct,
+                        new_struct,
                         mutation_proba=0.1 * np.random.random(),
                         struct_deletion_proba=0.1 * np.random.random()
                         if AUGMENT_STRUCTS
                         else 0.0,
                     )
                     if AUGMENT_TYPE != "EVOAUG"
-                    else evoaug_augment(seq, struct)
+                    else evoaug_augment(seq, new_struct)
                 )
-                seq = new_seq
-                if new_struct != struct:
-                    struct = new_struct
-                    cuts, outer = oracle_get_cuts(struct)
-                    cuts = str(cuts).replace(",", "")
+            if new_struct != struct:
+                struct = new_struct
+                cuts, outer = oracle_get_cuts(struct)
+                cuts = str(cuts).replace(",", "")
 
             seq_mat = format_data(seq, max_motifs=max_motifs)
             cuts_mat = np.array([float(c) for c in cuts[1:-1].split(" ")])
@@ -185,21 +185,21 @@ val_gen = motif_data_generator(val_path, data_augment_mutation=False)
 histories = []
 losses = []
 i = 0
-while True:
+while i < 60:
     history = model.fit(
         train_gen,
         validation_data=val_gen,
-        steps_per_epoch=3780,  # 37796|27768301 / 9138|13545894 / 332|782530
+        steps_per_epoch=378,  # 37796|27768301 / 9138|13545894 / 332|782530
         # 10-50 (1-5)    / 5-25 (2-10)   / 3-15 (35-175)
         epochs=1,
-        validation_steps=333,  # 3334 / 761 / 70
+        validation_steps=33,  # 3334 / 761 / 70
     )
     histories.append(history.history)
     this_loss = round(100000 * np.mean(history.history["val_loss"]), 2)
 
-    must_save = (not losses) or (this_loss < min(losses))
+    must_save = True  # (not losses) or (this_loss < min(losses))
     if must_save:
-        model.save(Path(f"resources/models/CNN1D_{MIN_LEN}{AUGMENT_TYPE}.keras"))
+        model.save(Path(f"resources/models/CNN1D_INCRANGE.keras"))
     losses.append(this_loss)
     print(f"Epoch {i+1}:")
     print(losses)
