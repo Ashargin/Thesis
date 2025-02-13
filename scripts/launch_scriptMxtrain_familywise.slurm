@@ -14,6 +14,6 @@
 module purge
 
 # Chargement des modules
-module load pytorch-gpu/py3/1.6.0
+module load pytorch-gpu/py3/2.5.0
 
 mxfold2 train --model MixC --param familywise.pth --save-config familywise.conf --gpu 0 --log-dir mxfold2_logdir_familywise resources/data_structures/train_familywise/filelist.lst

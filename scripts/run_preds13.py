@@ -20,10 +20,11 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "CNN1D_1600EVOAUG"
-predict_fnc = knotfold_predict
-evaluate_cutting_model = False
-max_length = 1000
+model_filename = "BiLSTM_400"
+predict_fnc = None
+evaluate_cutting_model = True
+max_length = 500
+lst_datasets = ["test_familywise", "test_familywise15", "test_sequencewise"]
 
 # Load model
 model = None
@@ -71,7 +72,7 @@ kwargs = (
 )
 
 # Run cutting metrics
-for dataset in ["test_sequencewise"]:
+for dataset in lst_datasets:
     dataset_name = dataset.replace("test_", "").replace("_lncRNAs", "")
     run_preds(
         global_predict_fnc,
