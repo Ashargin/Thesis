@@ -20,11 +20,11 @@ from src.utils import run_preds
 
 # Settings
 global_predict_fnc = dividefold_predict
-model_filename = "CNN1D_1600"
-predict_fnc = None
+model_filename = "CNN1D_1600EVOAUGINCRANGE"
+predict_fnc = pkiss_predict
 evaluate_cutting_model = True
-max_length = 500
-lst_datasets = ["test_familywise", "test_familywise15", "test_sequencewise"]
+max_length = 1000
+lst_datasets = ["16S23S", "curated_lncRNAs", "validation", "test_sequencewise"]
 
 # Load model
 model = None

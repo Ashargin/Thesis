@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.getcwd())
 
 from pathlib import Path
-from tensorflow import keras
+import keras
 
 from src.predict import (
     dividefold_predict,
@@ -16,15 +16,15 @@ from src.predict import (
     pkiss_predict,
     probknot_predict,
 )
-from src.models.loss import inv_exp_distance_to_cut_loss
 from src.utils import run_preds
 
 # Settings
-global_predict_fnc = probknot_predict
-model_filename = None
-predict_fnc = None
-evaluate_cutting_model = False
-max_length = None
+global_predict_fnc = dividefold_predict
+model_filename = "CNN1D_1600STRUCTAUG"
+predict_fnc = knotfold_predict
+evaluate_cutting_model = True
+max_length = 500
+lst_datasets = ["test_familywise", "test_familywise15", "test_sequencewise"]
 
 # Load model
 model = None
@@ -33,12 +33,7 @@ if global_predict_fnc.__name__ == "dividefold_predict":
     model_name = "oracle"
     if model_filename != "oracle":
         model = keras.models.load_model(
-            Path(f"resources/models/{model_filename}"), compile=False
-        )
-        model.compile(
-            optimizer="adam",
-            loss=inv_exp_distance_to_cut_loss,
-            run_eagerly=True,
+            Path(f"resources/models/{model_filename}.keras")
         )
 
         model_name = (
@@ -66,6 +61,8 @@ if global_predict_fnc.__name__ == "dividefold_predict" and not evaluate_cutting_
     ).replace(
         "ipknot", "ipk"
     ).replace(
+        "pkiss", "pks"
+    ).replace(
         "probknot", "pbk"
     )
 kwargs = (
@@ -75,7 +72,7 @@ kwargs = (
 )
 
 # Run cutting metrics
-for dataset in ["test_familywise", "test_sequencewise"]:
+for dataset in lst_datasets:
     dataset_name = dataset.replace("test_", "").replace("_lncRNAs", "")
     run_preds(
         global_predict_fnc,
@@ -84,13 +81,7 @@ for dataset in ["test_familywise", "test_sequencewise"]:
         ),
         in_filename=dataset,
         allow_errors=global_predict_fnc.__name__
-        in [
-            "mxfold2_predict",
-            "knotfold_predict",
-            "ipknot_predict",
-            "pkiss_predict",
-            "probknot_predict",
-        ],
+        in ["mxfold2_predict", "knotfold_predict", "pkiss_predict"],
         use_structs=model_filename == "oracle",
         kwargs=kwargs,
         evaluate_cutting_model=evaluate_cutting_model,

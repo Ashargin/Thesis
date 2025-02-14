@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=run17             # nom du job
+#SBATCH --job-name=run17              # nom du job
 #SBATCH --nodes=1                    # on demande un noeud
 #SBATCH --ntasks-per-node=1          # avec une tache par noeud (= nombre de GPU ici)
 #SBATCH --gres=gpu:1                 # nombre de GPU par noeud (max 8 avec gpu_p2, gpu_p4, gpu_p5)
@@ -14,5 +14,6 @@ module purge
 
 # Chargement des modules
 module load pytorch-gpu/py3/2.5.0
+module load pkiss
 
 python -u scripts/run_preds17.py

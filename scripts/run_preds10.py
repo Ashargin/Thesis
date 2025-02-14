@@ -21,7 +21,7 @@ from src.utils import run_preds
 # Settings
 global_predict_fnc = dividefold_predict
 model_filename = "CNN1D_1600EVOAUGINCRANGE"
-predict_fnc = None
+predict_fnc = knotfold_predict
 evaluate_cutting_model = True
 max_length = 1000
 lst_datasets = ["16S23S", "curated_lncRNAs", "validation", "test_sequencewise"]
