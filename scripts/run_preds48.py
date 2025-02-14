@@ -23,7 +23,7 @@ global_predict_fnc = ipknot_predict
 model_filename = None
 predict_fnc = None
 evaluate_cutting_model = False
-max_length = 500
+max_length = None
 lst_datasets = ["test_familywise", "test_familywise15", "test_sequencewise"]
 
 # Load model

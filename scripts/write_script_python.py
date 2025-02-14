@@ -43,9 +43,12 @@ sub_funcs = (
     + [None] * 7
 )
 sub_funcs = sub_funcs * 2 + ["knotfold_predict"] * 5
-max_lengths = [1000] * 25 + [500] * 25 + [200, 400, 600, 800, 1200]
+max_lengths = (
+    [1000] * 18 + [None] * 7 + [500] * 18 + [None] * 7 + [200, 400, 600, 800, 1200]
+)
 lsts_datasets = (
-    [["16S23S", "curated_lncRNAs", "validation", "test_sequencewise"]] * 25
+    [["16S23S", "curated_lncRNAs", "validation", "test_sequencewise"]] * 18
+    + [["16S23S", "curated_lncRNAs", "validation"]] * 7
     + [["test_familywise", "test_familywise15", "test_sequencewise"]] * 25
     + [
         [
