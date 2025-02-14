@@ -88,7 +88,7 @@ for dataset in lst_datasets:
         ),
         in_filename=dataset,
         allow_errors=global_predict_fnc.__name__
-        in ["mxfold2_predict", "knotfold_predict", "pkiss_predict"],
+        in ["mxfold2_predict", "knotfold_predict", "pkiss_predict", "probknot_predict"],
         use_structs=model_filename == "oracle",
         kwargs=kwargs,
         evaluate_cutting_model=evaluate_cutting_model,
