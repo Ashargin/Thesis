@@ -88,7 +88,7 @@ from src.utils import run_preds
 global_predict_fnc = {main_funcs[i-1]}
 model_filename = {models[i-1]}
 predict_fnc = {sub_funcs[i-1]}
-evaluate_cutting_model = True
+evaluate_cutting_model = False
 max_length = {max_lengths[i-1]}
 lst_datasets = {lsts_datasets[i-1]}
 """
@@ -148,7 +148,7 @@ for dataset in lst_datasets:
         ),
         in_filename=dataset,
         allow_errors=global_predict_fnc.__name__
-        in ["mxfold2_predict", "knotfold_predict", "pkiss_predict"],
+        in ["mxfold2_predict", "knotfold_predict", "pkiss_predict", "probknot_predict"],
         use_structs=model_filename == "oracle",
         kwargs=kwargs,
         evaluate_cutting_model=evaluate_cutting_model,

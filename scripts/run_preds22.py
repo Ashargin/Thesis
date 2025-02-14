@@ -22,7 +22,7 @@ from src.utils import run_preds
 global_predict_fnc = knotfold_predict
 model_filename = None
 predict_fnc = None
-evaluate_cutting_model = True
+evaluate_cutting_model = False
 max_length = 1000
 lst_datasets = ["16S23S", "curated_lncRNAs", "validation", "test_sequencewise"]
 

@@ -22,7 +22,7 @@ from src.utils import run_preds
 global_predict_fnc = mxfold2_predict
 model_filename = None
 predict_fnc = None
-evaluate_cutting_model = True
+evaluate_cutting_model = False
 max_length = 500
 lst_datasets = ["test_familywise", "test_familywise15", "test_sequencewise"]
 
