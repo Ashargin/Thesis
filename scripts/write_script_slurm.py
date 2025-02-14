@@ -23,7 +23,7 @@ for i in range(1, 56):
 module purge
 
 # Chargement des modules
-module load pytorch-gpu/py3/2.5.0{module_rnafold if i in [14, 20, 39, 45] else ""}{module_pkiss if i in [17, 24, 42, 49] else ""}{module_probknot if i in [18, 25, 43, 50] else ""}
+module load pytorch-gpu/py3/{"1.6.0" if i in [13, 19, 38, 44] else "2.5.0"}{module_rnafold if i in [14, 20, 39, 45] else ""}{module_pkiss if i in [17, 24, 42, 49] else ""}{module_probknot if i in [18, 25, 43, 50] else ""}
 
 python -u scripts/run_preds{i}.py
 """
