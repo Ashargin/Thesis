@@ -790,12 +790,12 @@ def format_data(seq, cuts=None, input_format="motifs", max_motifs=None, **kwargs
     return seq_array
 
 
-def evoaug_random_deletion(seq, struct, delete_min=0, delete_max=20):
-    delete_min = min(delete_min, len(seq) - 1)
-    delete_max = min(delete_max, len(seq) - 1)
+def augment_deletion(seq, struct, min_len=1, max_len=20):
+    max_len = min(max_len, len(seq) - 1)
+    min_len = min(min_len, max_len)
 
     # Pick deletion length and index
-    delete_len = np.random.randint(delete_min, delete_max + 1)
+    delete_len = np.random.randint(min_len, max_len + 1)
     delete_ind = np.random.randint(len(seq) - delete_len + 1)
     augmented_seq = seq[:delete_ind] + seq[delete_ind + delete_len :]
 
@@ -822,9 +822,11 @@ def evoaug_random_deletion(seq, struct, delete_min=0, delete_max=20):
     return augmented_seq, augmented_struct
 
 
-def evoaug_random_insertion(seq, struct, insert_min=0, insert_max=20):
+def augment_insertion(seq, struct, min_len=1, max_len=20):
+    min_len = min(min_len, max_len)
+
     # Pick insertion length and index, sample random inserted RNA
-    insert_len = np.random.randint(insert_min, insert_max + 1)
+    insert_len = np.random.randint(min_len, max_len + 1)
     insert_ind = np.random.randint(len(seq) + 1)
     insertion = "".join(np.random.choice(["A", "U", "C", "G"], insert_len))
     augmented_seq = seq[:insert_ind] + insertion + seq[insert_ind:]
@@ -835,12 +837,12 @@ def evoaug_random_insertion(seq, struct, insert_min=0, insert_max=20):
     return augmented_seq, augmented_struct
 
 
-def evoaug_random_translocation(seq, struct, shift_min=0, shift_max=20):
-    shift_min = min(shift_min, len(seq))
-    shift_max = min(shift_max, len(seq))
+def augment_translocation(seq, struct, min_len=1, max_len=20):
+    max_len = min(max_len, len(seq))
+    min_len = min(min_len, max_len)
 
     # Pick translocation length
-    shift_len = np.random.randint(shift_min, shift_max + 1)
+    shift_len = np.random.randint(min_len, max_len + 1)
     if np.random.random() < 0.5:
         shift_len *= -1
     augmented_seq = seq[-shift_len:] + seq[:-shift_len]
@@ -866,38 +868,53 @@ def evoaug_random_translocation(seq, struct, shift_min=0, shift_max=20):
     return augmented_seq, augmented_struct
 
 
-def evoaug_random_inversion(seq, struct, invert_min=0, invert_max=20):
-    invert_min = min(invert_min, len(seq))
-    invert_max = min(invert_max, len(seq))
+def augment_inversion(seq, struct, min_len=2, max_len=20):
+    max_len = min(max_len, len(seq))
+    min_len = min(min_len, max_len)
 
     # Pick inversion length and index
-    inversion_len = np.random.randint(invert_min, invert_max + 1)
+    inversion_len = np.random.randint(min_len, max_len + 1)
     inversion_ind = np.random.randint(len(seq) - inversion_len + 1)
     augmented_seq = (
         seq[:inversion_ind]
         + seq[inversion_ind : inversion_ind + inversion_len][::-1]
-        .replace("A", "?")
-        .replace("U", "A")
-        .replace("?", "U")
-        .replace("G", "?")
-        .replace("C", "G")
-        .replace("?", "C")
         + seq[inversion_ind + inversion_len :]
     )
 
-    # Adjust structure, remove base pairs for inversed nucleotides
-    augmented_pairs = struct_to_pairs(struct)
-    for i in range(inversion_ind, inversion_ind + inversion_len):
-        j = augmented_pairs[i] - 1
-        if j >= 0:
-            augmented_pairs[i] = 0
-            augmented_pairs[j] = 0
+    # Adjust structure, remove base pairs between inversed nucleotides and other nucleotides
+    pairs = struct_to_pairs(struct)
+    augmented_pairs = np.concatenate(
+        [
+            pairs[:inversion_ind],
+            pairs[inversion_ind : inversion_ind + inversion_len][::-1],
+            pairs[inversion_ind + inversion_len :],
+        ]
+    ).astype(int)
+
+    def translate(i, j):
+        from_inversed = (i + 1 > inversion_ind) and (
+            i + 1 <= inversion_ind + inversion_len
+        )
+        to_inversed = (j > inversion_ind) and (j <= inversion_ind + inversion_len)
+        if (from_inversed and not to_inversed) or (not from_inversed and to_inversed):
+            return 0
+
+        if j <= inversion_ind:
+            return j
+        elif j <= inversion_ind + inversion_len:
+            return 2 * inversion_ind + inversion_len + 1 - j
+        else:
+            return j
+
+    augmented_pairs = np.array(
+        [translate(i, j) if j > 0 else j for i, j in enumerate(augmented_pairs)]
+    )
     augmented_struct = pairs_to_struct(augmented_pairs)
 
     return augmented_seq, augmented_struct
 
 
-def evoaug_random_mutation(seq, struct, mutate_frac=0.05):
+def augment_mutation(seq, struct, mutate_frac=0.05):
     # Pick mutation locations
     num_mutations = round(mutate_frac / 0.75 * len(seq))
     mutation_inds = np.random.choice(
@@ -929,46 +946,45 @@ def evoaug_random_mutation(seq, struct, mutate_frac=0.05):
     return augmented_seq, augmented_struct
 
 
-def evoaug_random_reverse_complement(seq, struct, rc_prob=0.5):
+def augment_reverse_complement(seq, struct):
     augmented_seq = seq
     augmented_struct = struct
-    if np.random.random() < rc_prob:
-        # Reverse complement
-        augmented_seq = (
-            seq[::-1]
-            .replace("A", "?")
-            .replace("U", "A")
-            .replace("?", "U")
-            .replace("G", "?")
-            .replace("C", "G")
-            .replace("?", "C")
-        )
 
-        # Reverse structure
-        pairs = struct_to_pairs(struct)
-        augmented_pairs = pairs[::-1]
-        augmented_pairs = np.array(
-            [len(seq) - j + 1 if j > 0 else j for j in augmented_pairs]
-        )
-        augmented_struct = pairs_to_struct(augmented_pairs)
+    # Reverse complement
+    augmented_seq = (
+        seq[::-1]
+        .replace("A", "?")
+        .replace("U", "A")
+        .replace("?", "U")
+        .replace("G", "?")
+        .replace("C", "G")
+        .replace("?", "C")
+    )
+
+    # Reverse structure
+    pairs = struct_to_pairs(struct)
+    augmented_pairs = pairs[::-1]
+    augmented_pairs = np.array(
+        [len(seq) - j + 1 if j > 0 else j for j in augmented_pairs]
+    )
+    augmented_struct = pairs_to_struct(augmented_pairs)
 
     return augmented_seq, augmented_struct
 
 
-def evoaug_augment(seq, struct, max_augs_per_seq=2, hard_aug=True):
+def augment(seq, struct, min_augments=2, max_augments=2):
     # Sample augmentations
     augments = [
-        evoaug_random_deletion,
-        evoaug_random_insertion,
-        evoaug_random_translocation,
-        evoaug_random_inversion,
-        evoaug_random_mutation,
-        evoaug_random_reverse_complement,
+        augment_deletion,
+        augment_insertion,
+        augment_translocation,
+        augment_inversion,
+        augment_mutation,
+        augment_reverse_complement,
     ]
-    max_augs_per_seq = min(max_augs_per_seq, len(augments))
-    n_augments = (
-        max_augs_per_seq if hard_aug else np.random.randint(1, max_augs_per_seq + 1)
-    )
+    max_augments = min(max_augments, len(augments))
+    min_augments = min(min_augments, max_augments)
+    n_augments = np.random.randint(min_augments, max_augments + 1)
     sampled_augments = np.random.choice(
         np.arange(len(augments)), size=n_augments, replace=False
     )
