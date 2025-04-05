@@ -256,31 +256,30 @@ def probknot_predict(seq, path_rnastructure="../RNAstructure", timeout="meta"):
     return pred, ttot, 0.0
 
 
-def ensemble_predict(
-    seq, path_mxfold2="../mxfold2", path_linearfold="../LinearFold", timeout=None
-):
+def ensemble_predict(seq, predict_fncs, timeout=None):
     tstart = time.time()
     if timeout is not None:
         signal.alarm(timeout)
 
-    pred_mx, _, mem_mx = mxfold2_predict(seq, path_mxfold2=path_mxfold2)
-    pred_lf, _, mem_lf = linearfold_predict(seq, path_linearfold=path_linearfold)
-    pred_rnaf, _, mem_rnaf = rnafold_predict(seq)
+    preds = []
+    memories = []
+    for pred_f in predict_fncs:
+        pred, _, mem = pred_f(seq)
+        preds.append(pred)
+        memories.append(mem)
 
-    energy_mx = eval_energy(seq, pred_mx)
-    energy_lf = eval_energy(seq, pred_lf)
-    energy_rnaf = eval_energy(seq, pred_rnaf)
+    energies = [eval_energy(seq, pred) for pred in preds]
 
-    preds = [(pred_mx, energy_mx), (pred_lf, energy_lf), (pred_rnaf, energy_rnaf)]
-    preds.sort(key=lambda x: x[1])
+    pred_energies = list(zip(preds, energies))
+    pred_energies.sort(key=lambda x: x[1])
 
-    memory = max([mem_mx, mem_lf, mem_rnaf])
+    memory = max(memories)
 
     if timeout is not None:
         signal.alarm(0)
     ttot = time.time() - tstart
 
-    return preds, ttot, memory
+    return pred_energies, ttot, memory
 
 
 def knotfold_predict(seq, path_knotfold="../KnotFold", timeout=None):
@@ -730,6 +729,9 @@ def dividefold_predict(
     return_cuts=False,
 ):
     tstart = time.time()
+
+    if isinstance(predict_fnc, list):
+        predict_fnc = lambda seq: ensemble_predict(seq, predict_fncs=predict_fnc)
 
     if max_length is None:
         if (predict_fnc is None) or (predict_fnc.__name__ != "knotfold_predict"):
