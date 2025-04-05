@@ -581,9 +581,14 @@ def get_scores_df(path_in):
     sens = []
     fscores = []
     mccs = []
+    ppvs_nopk = []
+    sens_nopk = []
+    fscores_nopk = []
+    mccs_nopk = []
     pk_motif_ppvs = []
     pk_motif_sens = []
     pk_motif_fscores = []
+    pk_motif_mccs = []
     pk_motif_tps = []
     pk_motif_fps = []
     pk_motif_fns = []
@@ -602,12 +607,21 @@ def get_scores_df(path_in):
         fscores.append(fscore)
         mccs.append(mcc)
 
-        (ppv, sen, fscore, _), (tp, fp, fn, _) = get_pseudoknot_motif_scores(
+        ppv, sen, fscore, mcc = get_structure_scores(
+            re.sub(r"[^\(\)\.]", ".", y), re.sub(r"[^\(\)\.]", ".", yhat)
+        )
+        ppvs_nopk.append(ppv)
+        sens_nopk.append(sen)
+        fscores_nopk.append(fscore)
+        mccs_nopk.append(mcc)
+
+        (ppv, sen, fscore, mcc), (tp, fp, fn, _) = get_pseudoknot_motif_scores(
             y, yhat, return_confusion_matrix=True
         )
         pk_motif_ppvs.append(ppv)
         pk_motif_sens.append(sen)
         pk_motif_fscores.append(fscore)
+        pk_motif_mccs.append(mcc)
         pk_motif_tps.append(tp)
         pk_motif_fps.append(fp)
         pk_motif_fns.append(fn)
@@ -631,9 +645,14 @@ def get_scores_df(path_in):
             "sen": sens,
             "fscore": fscores,
             "mcc": mccs,
+            "ppv_nopk": ppvs_nopk,
+            "sen_nopk": sens_nopk,
+            "fscore_nopk": fscores_nopk,
+            "mcc_nopk": mccs_nopk,
             "pk_motif_ppv": pk_motif_ppvs,
             "pk_motif_sen": pk_motif_sens,
             "pk_motif_fscore": pk_motif_fscores,
+            "pk_motif_mcc": pk_motif_mccs,
             "pk_motif_tp": pk_motif_tps,
             "pk_motif_fn": pk_motif_fns,
             "pk_motif_fp": pk_motif_fps,
