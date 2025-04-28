@@ -9,7 +9,7 @@ import keras
 import scipy.signal
 from pathlib import Path
 
-from src.utils import format_data, optimize_pseudoknots, apply_mutation, evoaug_augment
+from src.utils import format_data, optimize_pseudoknots, apply_mutation, augment
 from src.models.mlp import MLP
 from src.models.cnn_1d import CNN1D
 from src.models.bilstm import BiLSTM
@@ -28,7 +28,9 @@ AUGMENT_TYPE = "EVOAUG"
 model = CNN1D(input_shape=(None, MAX_MOTIFS + 4), max_dil=MAX_DIL)
 # model = MLP(input_shape=(None, MAX_MOTIFS + 4))
 # model = BiLSTM(input_shape=(None, MAX_MOTIFS + 4))
-pretrained_model = keras.models.load_model(r"resources/models/CNN1D_400.keras")
+pretrained_model = keras.models.load_model(
+    r"resources/models/CNN1D_1600EVOAUGINCRANGE.keras"
+)
 model.set_weights(pretrained_model.weights)
 model.compile(
     optimizer="adam",
@@ -102,7 +104,7 @@ def motif_data_generator(
                         else 0.0,
                     )
                     if AUGMENT_TYPE != "EVOAUG"
-                    else evoaug_augment(seq, new_struct)
+                    else augment(seq, new_struct)
                 )
             if new_struct != struct:
                 struct = new_struct
@@ -206,9 +208,8 @@ while i < 60:
     print("SAVED" if must_save else "DISCARDED")
     i += 1
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
-#
 # loss = history.history["loss"]
 # val_loss = history.history["val_loss"]
 # X = np.arange(len(loss))
@@ -223,40 +224,81 @@ while i < 60:
 #     rf"resources/png/training_curve_cnn_sequencewise_{MAX_MOTIFS}motifs{MAX_DIL}dilINV{'_augmented' if DATA_AUGMENT_MUTATION else ''}.png"
 # )
 # plt.show()
-#
-# my_model = keras.models.load_model(Path("resources/models/CNN1D"), compile=False)
-# my_model.compile(
-#     optimizer="adam",
-#     loss=inv_exp_distance_to_cut_loss,
-#     run_eagerly=True,
-# )
-# test_datagen = motif_data_generator(Path("resources/data_splits/test_sequencewise"))
-#
-#
-# def plot_cut_probabilities():
-#     seq_mat, cuts_mat = next(test_datagen)
-#     preds = my_model(seq_mat).numpy().ravel()
-#     cuts_mat = cuts_mat.ravel().astype(int)
-#
-#     X = np.arange(len(preds)) + 1
-#     for i, x in enumerate(X[cuts_mat]):
-#         plt.plot(
-#             [x, x],
-#             [0, 1],
-#             color="black",
-#             linewidth=1.5,
-#             label="True cut points" if i == 0 else "",
-#         )
-#     plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
-#
-#     peaks = scipy.signal.find_peaks(preds, height=0.28, distance=12)[0]
-#     plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
-#
-#     plt.xlim([X[0], X[-1]])
-#     plt.ylim([0, 1])
-#
-#     plt.title(
-#         "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
-#     )
-#     plt.legend()
-#     plt.show()
+
+my_model = keras.models.load_model(r"resources/models/CNN1D_1600EVOAUGINCRANGE.keras")
+my_model.compile(
+    optimizer="adam",
+    loss="mean_squared_error",
+    run_eagerly=True,
+)
+test_datagen = motif_data_generator(
+    Path("resources/data_splits/test_sequencewise"), min_len=100
+)
+
+
+def plot_cut_probabilities():
+    seq_mat, cuts_mat = next(test_datagen)
+    preds = my_model(seq_mat).numpy().ravel()
+    cuts_mat = cuts_mat.ravel() == 1
+
+    X = np.arange(len(preds)) + 1
+    for i, x in enumerate(X[cuts_mat]):
+        plt.plot(
+            [x, x],
+            [0, 1],
+            color="black",
+            linewidth=1.5,
+            label="True cut points" if i == 0 else "",
+        )
+    plt.plot(X, preds, color="tab:orange", label="Predicted probabilities to cut")
+
+    peaks = scipy.signal.find_peaks(preds, height=0.28, distance=12)[0]
+    plt.plot(X[peaks], preds[peaks], "o", color="tab:blue", label="Selected cut points")
+
+    plt.xlim([X[0], X[-1]])
+    plt.ylim([0, 1])
+
+    plt.title(
+        "Predicted cutting probabilities and selected cut points\ncompared to true cut points"
+    )
+    plt.legend()
+    plt.show()
+
+
+def plot_lambda():
+    seq_mat, cuts_mat = next(test_datagen)
+    cuts_mat = cuts_mat.ravel() == 1
+
+    fig, ax = plt.subplots(figsize=(7, 4))
+    X = np.arange(seq_mat.shape[1]) + 1
+    for i, x in enumerate(X[cuts_mat]):
+        plt.plot(
+            [x, x],
+            [0, 1],
+            color="black",
+            linewidth=1.5,
+            label="Training labels in C" if i == 0 else "",
+        )
+
+    cuts_mat = (np.arange(len(cuts_mat))[cuts_mat == 1]).astype(float)
+    base_loss_array = np.abs(
+        cuts_mat.reshape((1, -1)) - np.arange(seq_mat.shape[1]).reshape((-1, 1))
+    ).min(axis=1)
+    for lbda in [0.2, 0.5, 1.0]:
+        loss_array = np.exp(-lbda * base_loss_array)
+        plt.plot(X, loss_array, label=f"y(C), λ={lbda}")
+
+    plt.xlim([X[0], X[-1]])
+    plt.ylim([0, 1])
+
+    plt.tick_params(axis="both", which="major", labelsize=14)
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.8])
+    plt.legend(
+        loc="lower left",
+        prop={"size": 14},
+        title_fontsize=14,
+        ncol=4,
+        bbox_to_anchor=(0.0, -0.3),
+    )
+    plt.show()
